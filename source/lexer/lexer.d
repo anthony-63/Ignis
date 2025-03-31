@@ -3,6 +3,7 @@ module lexer.lexer;
 import std.stdio;
 import std.regex;
 import std.string;
+import std.algorithm;
 
 import lexer.tokens;
 
@@ -22,10 +23,13 @@ class Lexer {
     this(string source) {
         this.source = source;
     
-        patterns = [
+        patterns = reverse([
             RegexPattern(regex(r"\s+"), whitespace_handler()),
-            RegexPattern(regex(r"[0-9]+(\.[0-9]+)"), float_handler()),
+            RegexPattern(regex(`\/\/.*`), comment_handler()),
+            RegexPattern(regex(`"[^"]*`), string_handler()),
             RegexPattern(regex(r"[0-9]+"), integer_handler()),
+            RegexPattern(regex(r"[0-9]+(\.[0-9]+)"), float_handler()),
+            RegexPattern(regex(r"[a-zA-Z_][a-zA-Z0-9_]*"), symbol_handler()),
             RegexPattern(regex(r"\["), default_handler(TokenKind.OPEN_BRACKET, "[")),
 			RegexPattern(regex(r"\]"), default_handler(TokenKind.CLOSE_BRACKET, "]")),
 			RegexPattern(regex(r"\{"), default_handler(TokenKind.OPEN_CURLY, "{")),
@@ -57,8 +61,7 @@ class Lexer {
 			RegexPattern(regex(r"/"), default_handler(TokenKind.SLASH, "/")),
 			RegexPattern(regex(r"\*"), default_handler(TokenKind.STAR, "*")),
 			RegexPattern(regex(r"%"), default_handler(TokenKind.PERCENT, "%")),
-            RegexPattern(regex(r"\["), default_handler(TokenKind.OPEN_BRACKET, "[")),
-        ];
+        ]);
     }
 
     void advance(size_t n) {
@@ -93,7 +96,7 @@ class Lexer {
                 }
             }
             if(!matched) {
-                throw new Error(format("Invalid token ''%s'", remainder()[0]));
+                throw new Error(format("Invalid token '%s'", remainder()[0]));
             }
         }
 
@@ -109,17 +112,44 @@ class Lexer {
 
     private static RegexHandler whitespace_handler() {
         return (Lexer lexer, Regex!char regex) {
-            auto match = matchFirst(lexer.remainder(), regex);
-            lexer.advance(match.length);
+            auto match = matchAll(lexer.remainder(), regex);
+            lexer.advance(match.hit.length);
         };
     }
 
+    private static RegexHandler comment_handler() {
+        return (Lexer lexer, Regex!char regex) {
+            auto match = matchAll(lexer.remainder(), regex);
+            lexer.advance(match.hit.length);
+            // TODO FIX
+        };
+    }
 
     private static RegexHandler integer_handler() {
         return (Lexer lexer, Regex!char regex) {
             auto match = matchFirst(lexer.remainder(), regex);
             lexer.push(Token(TokenKind.INT, match.hit));
             lexer.advance(match.hit.length);
+        };
+    }
+
+    private static RegexHandler string_handler() {
+        return (Lexer lexer, Regex!char regex) {
+            auto match = matchFirst(lexer.remainder(), regex);
+            auto strlit = lexer.remainder()[match.pre.length+1..match.hit.length];
+
+            lexer.push(Token(TokenKind.STRING, strlit));
+            lexer.advance(strlit.length+2);
+        };
+    }
+    
+    private static RegexHandler symbol_handler() {
+        return (Lexer lexer, Regex!char regex) {
+            auto match = matchFirst(lexer.remainder(), regex);
+            auto strlit = lexer.remainder()[match.pre.length..match.hit.length];
+
+            lexer.push(Token(TokenKind.IDENT, strlit));
+            lexer.advance(strlit.length);
         };
     }
 
