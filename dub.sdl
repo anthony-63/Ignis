@@ -1,0 +1,5 @@
+name "ignis"
+description "Ignis programming language"
+authors "anthony-63"
+copyright "Copyright © 2025, anthony-63"
+license "GPL-3.0-only"

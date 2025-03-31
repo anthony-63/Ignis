@@ -1,0 +1,16 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/ignis
+ignis.so
+ignis.dylib
+ignis.dll
+ignis.a
+ignis.lib
+ignis-test-*
+*.exe
+*.pdb
+*.o
+*.obj
+*.lst
