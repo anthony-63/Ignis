@@ -2,6 +2,7 @@ import std.stdio;
 import std.file;
 
 import lexer.lexer;
+import parser.parser;
 
 void usage(string filename) {
 	writefln("Usage: ./%s <input>", filename);
@@ -20,7 +21,7 @@ void main(string[] args) {
 	auto lexer = new Lexer(source);
 	auto tokens = lexer.tokenize();
 
-	foreach(tok; tokens) {
-		tok.print();
-	}
+	auto ast = Parser.parse(tokens);
+
+	writeln(ast);
 }

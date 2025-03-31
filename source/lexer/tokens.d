@@ -53,7 +53,24 @@ enum TokenKind {
     PERCENT,
 
     INCLUDE,
+
+    IF,
+    ELSE,
+    FOR,
+    WHILE,
+    TYPEOF,
+    SIZEOF,
 }
+
+const TokenKind[string] reserved_keywords = [
+    "include": TokenKind.INCLUDE,
+    "if": TokenKind.IF,
+    "else": TokenKind.ELSE,
+    "for": TokenKind.FOR,
+    "while": TokenKind.WHILE,
+    "sizeof": TokenKind.SIZEOF,
+    "typeof": TokenKind.TYPEOF,
+];
 
 struct Token {
     TokenKind kind;

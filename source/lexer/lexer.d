@@ -148,7 +148,9 @@ class Lexer {
             auto match = matchFirst(lexer.remainder(), regex);
             auto strlit = lexer.remainder()[match.pre.length..match.hit.length];
 
-            lexer.push(Token(TokenKind.IDENT, strlit));
+            if(strlit in reserved_keywords) lexer.push(Token(reserved_keywords[strlit], strlit));
+            else lexer.push(Token(TokenKind.IDENT, strlit));
+            
             lexer.advance(strlit.length);
         };
     }
