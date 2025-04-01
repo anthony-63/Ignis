@@ -48,18 +48,74 @@ Stmt parse_var_decl_stmt(Parser parser) {
 }
 
 Stmt parse_function_decl(Parser parser, SymbolExpr name) {
-    writeln(parser.current);
+    parser.expect(TokenKind.OPEN_PAREN);
+
+    writeln("-------------------------");
+    writeln("|     FUNCTION DECL     |");
+    writeln("-------------------------");
+    writeln("subroutine name: ", name.value);
+
+    FieldStmt[] args;
+    while(parser.has_tokens() && parser.current.kind != TokenKind.CLOSE_PAREN) {
+        auto field_name = parser.expect(TokenKind.IDENT);
+        writeln("arg name: ", field_name);
+        auto type = parse_type(parser, BindingPower.Default);
+        writeln("arg type: ", type);
+
+        args ~= new FieldStmt(field_name.value, type);
+        if(parser.current.kind != TokenKind.CLOSE_PAREN) {
+            parser.expect(TokenKind.COMMA);
+        }
+
+    }
+    parser.expect(TokenKind.CLOSE_PAREN);
+
+    Type return_type = new SymbolType("void");
+
+    if(parser.current.kind == TokenKind.IDENT) {
+        return_type = parse_type(parser, BindingPower.Member);
+    }
+
+    Stmt[] body;
+
+    parser.expect(TokenKind.OPEN_CURLY);
+    while(parser.has_tokens() && parser.current.kind != TokenKind.CLOSE_CURLY) {
+        body ~= parse_stmt(parser);
+    }
+
+    writeln(body);
+
+
+    parser.expect(TokenKind.CLOSE_CURLY);
+
     return new ExprStmt(new SymbolExpr(""));
 }
 
 Stmt parse_struct_decl(Parser parser, SymbolExpr name) {
     parser.expect(TokenKind.OPEN_CURLY);
+    writeln();
+
+    writeln("-------------------------");
+    writeln("|      STRUCT DECL      |");
+    writeln("-------------------------");
+    writeln("struct name: ", name.value);
 
     FieldStmt[] fields;
+    FuncDeclStmt[] funcs;
 
     while(parser.has_tokens() && parser.current.kind != TokenKind.CLOSE_CURLY) {
         auto field_name = parser.expect(TokenKind.IDENT);
         writeln("field name: ", field_name);
+
+        if(parser.current.kind == TokenKind.ARROW) {
+            parser.advance();
+            parser.expect(TokenKind.SUB);
+            writeln("-------------------------");
+            writeln("|      MEMBER FUNC      |");
+            funcs ~= cast(FuncDeclStmt)parse_function_decl(parser, new SymbolExpr(field_name.value));
+            continue;
+        }
+
         auto type = parse_type(parser, BindingPower.Default);
         writeln("field type: ", (cast(SymbolType)type).name);
 
@@ -71,5 +127,5 @@ Stmt parse_struct_decl(Parser parser, SymbolExpr name) {
 
     parser.advance();
 
-    return new StructDeclStmt(name.value, fields);
+    return new StructDeclStmt(name.value, fields, funcs);
 }

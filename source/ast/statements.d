@@ -34,15 +34,17 @@ class FieldStmt : Stmt {
 class StructDeclStmt : Stmt {
     string ident;
     FieldStmt[] fields;
+    FuncDeclStmt[] funcs;
 
-    this(string _ident, FieldStmt[] _fields) { ident = _ident; fields = _fields; }
+    this(string _ident, FieldStmt[] _fields, FuncDeclStmt[] _funcs) { ident = _ident; fields = _fields; funcs = _funcs; }
 }
 
 class FuncDeclStmt : Stmt {
     string ident;
+    Type return_type;
     FieldStmt[] args;
     Stmt[] body;
 
-    this(string _ident, FieldStmt[] _args, Stmt[] _body) { ident = _ident; args = _args; body = _body; }
+    this(string _ident, FieldStmt[] _args, Stmt[] _body, Type _ret_type) { ident = _ident; args = _args; body = _body; return_type = _ret_type; }
 
 }

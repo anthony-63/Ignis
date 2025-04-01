@@ -1,10 +1,12 @@
 module parser.parser;
 
+import std.stdio;
 import std.format;
 
 import lexer.tokens;
 import ast.ast;
 import ast.statements;
+import ast.expressions;
 import parser.stmt;
 import parser.lookups;
 import parser.types;
@@ -34,7 +36,7 @@ void setup_lookup_table() {
     nud(TokenKind.INT, BindingPower.Primary, &parse_primary_expr);
     nud(TokenKind.DECIMEL, BindingPower.Primary, &parse_primary_expr);
     nud(TokenKind.STRING, BindingPower.Primary, &parse_primary_expr);
-    nud(TokenKind.IDENT, BindingPower.Primary, &parse_primary_expr);
+    nud(TokenKind.IDENT, BindingPower.Default, &parse_primary_expr);
 
     nud(TokenKind.OPEN_BRACKET, BindingPower.Member, &parse_array_expr);
 
@@ -90,7 +92,7 @@ class Parser {
     }
 
     Token expect(TokenKind expected) {
-        return expect_error(expected, format("Expected %s but got %s", expected, tokens[pos-1].kind));
+        return expect_error(expected, format("Expected %s but got %s", expected, tokens[pos]));
     }
 
     bool has_tokens() {

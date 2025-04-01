@@ -60,10 +60,11 @@ Expr parse_array_expr(Parser parser) {
 
     Expr[] exprs;
 
-    while(true) {
+    while(parser.has_tokens() && parser.current.kind != TokenKind.CLOSE_BRACKET) {
         exprs ~= parse_expr(parser, BindingPower.Default);
-        if(parser.current.kind == TokenKind.CLOSE_BRACKET) break;
-        else parser.expect(TokenKind.COMMA);
+        if(parser.current.kind != TokenKind.CLOSE_BRACKET) {
+            parser.expect(TokenKind.COMMA);
+        }
     }
 
     parser.advance();
