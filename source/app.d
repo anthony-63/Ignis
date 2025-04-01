@@ -22,6 +22,5 @@ void main(string[] args) {
 	auto tokens = lexer.tokenize();
 
 	auto ast = Parser.parse(tokens);
-
-	writeln(ast.body);
+	
 }
