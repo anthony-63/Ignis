@@ -63,16 +63,16 @@ class FuncDeclExprHack : HackedExpr {
     }
 }
 
-class AccessExpr : Expr {
-    string parent;
-    string member;
-
-    this(string _parent, string _member) { parent = _parent; member = _member; }
-}
-
 class CallExpr : Expr {
     string name;
     Expr[] args;
 
     this(string _name, Expr[] _args) { name = _name; args = _args; }
+}
+
+class AssignmentExpr : Expr {
+    string left;
+    Expr right;
+
+    this(string l, Expr r) { left = l, right = r; }
 }

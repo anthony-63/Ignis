@@ -27,6 +27,8 @@ void setup_lookup_table() {
     led(TokenKind.PLUS, BindingPower.Additive, &parse_binary_expr);
     led(TokenKind.DASH, BindingPower.Additive, &parse_binary_expr);
 
+    led(TokenKind.ASSIGNMENT, BindingPower.Assignment, &parse_assignment_expr);
+
     led(TokenKind.STAR, BindingPower.Multiplicative, &parse_binary_expr);
     led(TokenKind.SLASH, BindingPower.Multiplicative, &parse_binary_expr);
     led(TokenKind.PERCENT, BindingPower.Multiplicative, &parse_binary_expr);
@@ -35,6 +37,9 @@ void setup_lookup_table() {
 
     led(TokenKind.DOT, BindingPower.Member, &parse_dot_expr);
     led(TokenKind.OPEN_PAREN, BindingPower.Call, &parse_call_expr);
+
+    led(TokenKind.PLUS_EQUALS, BindingPower.Call, &parse_op_equals_expr);
+    led(TokenKind.MINUS_EQUALS, BindingPower.Call, &parse_op_equals_expr);
 
     nud(TokenKind.INT, BindingPower.Primary, &parse_primary_expr);
     nud(TokenKind.DECIMEL, BindingPower.Primary, &parse_primary_expr);
@@ -51,6 +56,7 @@ void setup_lookup_table() {
 void setup_type_lookup_table() {
     type_nud(TokenKind.IDENT, &parse_symbol_type);
     type_nud(TokenKind.OPEN_BRACKET, &parse_array_type);
+    type_nud(TokenKind.REF, &parse_ref_type);
 }
 
 class Parser {
@@ -82,6 +88,10 @@ class Parser {
         auto t = current;
         pos++;
         return t;
+    }
+
+    Token peek() {
+        return tokens[pos + 1];
     }
 
     Token expect_error(TokenKind expected, string err) {

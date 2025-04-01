@@ -60,3 +60,9 @@ Type parse_type(Parser parser, BindingPower bp) {
 
     return left;
 }
+
+Type parse_ref_type(Parser parser) {
+    parser.advance();
+
+    return new RefType(parse_type(parser, BindingPower.Default));
+}

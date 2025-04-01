@@ -80,11 +80,21 @@ Expr parse_binary_expr(Parser parser, Expr left, BindingPower bp) {
     return new BinExpr(left, op, right);
 }
 
+Expr parse_assignment_expr(Parser parser, Expr left, BindingPower bp) {
+    assert(!is(left == SymbolExpr), "Expected Identifier on LHS of assignment expression");
+    string lhs = (cast(SymbolExpr)left).value;
+
+    parser.advance();
+    auto right = parse_expr(parser, bp);
+
+    return new AssignmentExpr(lhs, right);
+}
+
 Expr parse_dot_expr(Parser parser, Expr left, BindingPower bp) {
     assert(!is(left == SymbolExpr), "Expected Identifier on LHS of access expression");
     parser.advance();
     auto right = parser.expect(TokenKind.IDENT);
-    return new AccessExpr((cast(SymbolExpr)left).value, right.value);
+    return new SymbolExpr((cast(SymbolExpr)left).value ~ "." ~ right.value);
 }
 
 Expr parse_call_expr(Parser parser, Expr left, BindingPower bp) {
@@ -101,4 +111,21 @@ Expr parse_call_expr(Parser parser, Expr left, BindingPower bp) {
     parser.expect(TokenKind.CLOSE_PAREN);
 
     return new CallExpr((cast(SymbolExpr)left).value, args);
+}
+
+Expr parse_op_equals_expr(Parser parser, Expr left, BindingPower bp) {
+    assert(!is(left == SymbolExpr), "Expected Identifier on LHS of 'OPERATOR=' expression");
+    string lhs = (cast(SymbolExpr)left).value;
+
+    TokenKind real_op;
+
+    switch(parser.current.kind) {
+        case TokenKind.PLUS_EQUALS: real_op = TokenKind.PLUS; break;
+        case TokenKind.MINUS_EQUALS: real_op = TokenKind.DASH; break;
+        default: assert(false, format("Invalid operation on OPERATOR= expression, got %s", parser.current));
+    }
+
+    parser.advance();
+
+    return new AssignmentExpr(lhs, new BinExpr(left, Token(real_op, " "), parse_expr(parser, BindingPower.Default)));
 }

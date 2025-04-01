@@ -1,6 +1,7 @@
 module parser.stmt;
 
 import std.stdio;
+import std.format;
 
 import ast.ast;
 import ast.types;
@@ -18,8 +19,9 @@ Stmt parse_stmt(Parser parser) {
     }
 
     auto expr = parse_expr(parser, BindingPower.Default);
-    if(!is(expr == HackedExpr)) {
-        return (cast(HackedExpr)expr).get_stmt();
+
+    if(auto hexpr = cast(HackedExpr)expr) {
+        return hexpr.get_stmt();
     }
 
     parser.expect(TokenKind.SEMICOLON);
@@ -65,19 +67,20 @@ Stmt parse_function_decl(Parser parser, SymbolExpr name) {
     writeln("subroutine name: ", name.value);
     FieldStmt[] args;
     while(parser.has_tokens() && parser.current.kind != TokenKind.CLOSE_PAREN) {
-        bool refed = false;
-        if(parser.current.kind == TokenKind.REF) {
-            refed = true;
-            parser.advance();
-        }
-        auto field_name = parser.expect(TokenKind.IDENT);
-        writeln("arg name: ", field_name);
-        if(field_name.value == "this") {
-            args ~= new FieldStmt(field_name.value, new SymbolType("this", refed));
-        } else  {
+        auto field_name = parser.advance();
+        if(field_name.value == "this" || parser.current.value == "this") {
+            if(field_name.kind == TokenKind.REF) args ~= new FieldStmt("this", new RefType(new SymbolType("this")));
+            else if(field_name.kind == TokenKind.IDENT) args ~= new FieldStmt("this", new SymbolType("this"));
+            else assert(false, format("Invalid 'this' argument in function '%s'", name.value));
+            if(parser.current.value == "this") parser.advance();
+            writeln("'this' arg passed in by type: ", args[$-1].type);
+
+        } else {
             auto type = parse_type(parser, BindingPower.Default);
             writeln("arg type: ", type);
             args ~= new FieldStmt(field_name.value, type);
+            writeln("arg name: ", field_name);
+
         }
 
 
@@ -136,7 +139,7 @@ Stmt parse_struct_decl(Parser parser, SymbolExpr name) {
         }
 
         auto type = parse_type(parser, BindingPower.Default);
-        writeln("field type: ", (cast(SymbolType)type).name);
+        writeln("field type: ", type);
 
         fields ~= new FieldStmt(field_name.value, type);
         if(parser.current.kind != TokenKind.CLOSE_CURLY) {

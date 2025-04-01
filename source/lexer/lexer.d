@@ -55,13 +55,13 @@ class Lexer {
 			RegexPattern(regex(r","), default_handler(TokenKind.COMMA, ",")),
 			RegexPattern(regex(r"\+"), default_handler(TokenKind.PLUS_PLUS, "++")),
 			RegexPattern(regex(r"--"), default_handler(TokenKind.MINUS_MINUS, "--")),
-			RegexPattern(regex(r"\+="), default_handler(TokenKind.PLUS_EQUALS, "+=")),
-			RegexPattern(regex(r"-="), default_handler(TokenKind.MINUS_EQUALS, "-=")),
 			RegexPattern(regex(r"\+"), default_handler(TokenKind.PLUS, "+")),
 			RegexPattern(regex(r"-"), default_handler(TokenKind.DASH, "-")),
 			RegexPattern(regex(r"/"), default_handler(TokenKind.SLASH, "/")),
 			RegexPattern(regex(r"\*"), default_handler(TokenKind.STAR, "*")),
 			RegexPattern(regex(r"%"), default_handler(TokenKind.PERCENT, "%")),
+			RegexPattern(regex(r"\+="), default_handler(TokenKind.PLUS_EQUALS, "+=")),
+			RegexPattern(regex(r"-="), default_handler(TokenKind.MINUS_EQUALS, "-=")),
             RegexPattern(regex(r"->"), default_handler(TokenKind.ARROW, "->")),
         ]);
     }
