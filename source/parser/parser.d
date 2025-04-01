@@ -32,6 +32,9 @@ void setup_lookup_table() {
     nud(TokenKind.DECIMEL, BindingPower.Primary, &parse_primary_expr);
     nud(TokenKind.STRING, BindingPower.Primary, &parse_primary_expr);
     nud(TokenKind.IDENT, BindingPower.Primary, &parse_primary_expr);
+
+    stmt(TokenKind.MUT, &parse_var_decl_stmt);
+    stmt(TokenKind.IMMUT, &parse_var_decl_stmt);
 }
 
 class Parser {
@@ -64,15 +67,19 @@ class Parser {
         return t;
     }
 
-    Token expect(TokenKind expected) {
+    Token expect_error(TokenKind expected, string err) {
         auto tok = current();
         auto kind = tok.kind;
 
         if(kind != expected) {
-            assert(false, format("Expected %s but got %s", expected, tok));
+            assert(false, err);
         }
 
         return advance();
+    }
+
+    Token expect(TokenKind expected) {
+        return expect_error(expected, format("Expected %s but got %s", expected, tokens[pos-1].kind));
     }
 
     bool has_tokens() {

@@ -31,8 +31,8 @@ Expr parse_expr(Parser parser, BindingPower bp) {
 
 Expr parse_primary_expr(Parser parser) {
     switch(parser.current().kind) {
-        case TokenKind.INT: return new NumberExpr(to!int(parser.advance().value)); break;
-        case TokenKind.DECIMEL: return new NumberExpr(to!float(parser.advance().value)); break;
+        case TokenKind.INT: return new IntExpr(to!int(parser.advance().value)); break;
+        case TokenKind.DECIMEL: return new FloatExpr(to!float(parser.advance().value)); break;
         case TokenKind.STRING: return new StringExpr(parser.advance().value); break;
         case TokenKind.IDENT: return new SymbolExpr(parser.advance().value); break;
         default: assert(false, format("Failed to parse primary expression (%s)", parser.current()));

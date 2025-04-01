@@ -3,13 +3,18 @@ module ast.expressions;
 import ast.ast;
 import lexer.tokens;
 
-class NumberExpr : Expr {
-    float fval;
-    int ival;
+class IntExpr : Expr {
+    int val;
 
-    this(int val) { ival = val; }
-    this(float val) { fval = val; }
+    this(int _val) { val = _val; }
 }
+
+class FloatExpr : Expr {
+    float val;
+
+    this(float _val) { val = _val; }
+}
+
 
 class StringExpr : Expr {
     string value;

@@ -45,7 +45,7 @@ void nud(TokenKind kind, BindingPower bp, NUDHandler handler) {
     nud_lu[kind] = handler;
 }
 
-void stmt(TokenKind kind, BindingPower bp, StmtHandler handler) {
-    bp_lu[kind] = bp;
+void stmt(TokenKind kind, StmtHandler handler) {
+    bp_lu[kind] = BindingPower.Default;
     stmt_lu[kind] = handler;
 }

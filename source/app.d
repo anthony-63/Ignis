@@ -3,10 +3,11 @@ import std.file;
 
 import lexer.lexer;
 import parser.parser;
+import ast.statements;
+import ast.expressions;
 
 void usage(string filename) {
 	writefln("Usage: ./%s <input>", filename);
-	
 }
 
 void main(string[] args) {
@@ -22,5 +23,4 @@ void main(string[] args) {
 	auto tokens = lexer.tokenize();
 
 	auto ast = Parser.parse(tokens);
-	
 }

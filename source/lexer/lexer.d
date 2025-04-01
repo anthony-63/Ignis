@@ -99,6 +99,7 @@ class Lexer {
                 throw new Error(format("Invalid token '%s'", remainder()[0]));
             }
         }
+        tokens ~= Token(TokenKind.EOF, "");
 
         return tokens;
     }

@@ -60,6 +60,8 @@ enum TokenKind {
     WHILE,
     TYPEOF,
     SIZEOF,
+    MUT,
+    IMMUT,
 }
 
 const TokenKind[string] reserved_keywords = [
@@ -70,6 +72,8 @@ const TokenKind[string] reserved_keywords = [
     "while": TokenKind.WHILE,
     "sizeof": TokenKind.SIZEOF,
     "typeof": TokenKind.TYPEOF,
+    "mut": TokenKind.MUT,
+    "immut": TokenKind.IMMUT,
 ];
 
 struct Token {
