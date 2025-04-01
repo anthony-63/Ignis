@@ -3,6 +3,7 @@ module parser.stmt;
 import std.stdio;
 
 import ast.ast;
+import ast.types;
 import ast.statements;
 import ast.expressions;
 import parser.expr;
@@ -12,11 +13,15 @@ import parser.lookups;
 import parser.types;
 
 Stmt parse_stmt(Parser parser) {
-    if(parser.current().kind in stmt_lu) {
-        return stmt_lu[parser.current().kind](parser);
+    if(parser.current.kind in stmt_lu) {
+        return stmt_lu[parser.current.kind](parser);
     }
 
     auto expr = parse_expr(parser, BindingPower.Default);
+    if(!is(expr == HackedExpr)) {
+        return (cast(HackedExpr)expr).get_stmt();
+    }
+
     parser.expect(TokenKind.SEMICOLON);
 
     return new ExprStmt(expr);
@@ -29,7 +34,7 @@ Stmt parse_var_decl_stmt(Parser parser) {
 
     Type explicit_type = null;
 
-    if(parser.current().kind == TokenKind.COLON) {
+    if(parser.current.kind == TokenKind.COLON) {
         parser.advance();
         explicit_type = parse_type(parser, BindingPower.Default);
     }
@@ -42,10 +47,29 @@ Stmt parse_var_decl_stmt(Parser parser) {
     return new VarDeclStmt(name, mutable, val, explicit_type);
 }
 
-// Stmt parse_function_decl(Parser parser) {
+Stmt parse_function_decl(Parser parser, SymbolExpr name) {
+    writeln(parser.current);
+    return new ExprStmt(new SymbolExpr(""));
+}
 
-// }
+Stmt parse_struct_decl(Parser parser, SymbolExpr name) {
+    parser.expect(TokenKind.OPEN_CURLY);
 
-// Stmt parse_struct_decl(Parser parser) {
+    FieldStmt[] fields;
 
-// }
+    while(parser.has_tokens() && parser.current.kind != TokenKind.CLOSE_CURLY) {
+        auto field_name = parser.expect(TokenKind.IDENT);
+        writeln("field name: ", field_name);
+        auto type = parse_type(parser, BindingPower.Default);
+        writeln("field type: ", (cast(SymbolType)type).name);
+
+        fields ~= new FieldStmt(field_name.value, type);
+        if(parser.current.kind != TokenKind.CLOSE_CURLY) {
+            parser.expect(TokenKind.COMMA);
+        }
+    }
+
+    parser.advance();
+
+    return new StructDeclStmt(name.value, fields);
+}

@@ -24,12 +24,25 @@ class VarDeclStmt : Stmt {
     this(string _ident, bool _mut, Expr _value, Type _explicit) { ident = _ident; mutable = _mut; value = _value; explicit_type = _explicit; }
 }
 
-class StructFieldStmt : Stmt {
-    string identifier;
-    
+class FieldStmt : Stmt {
+    string ident;
+    Type type;
+
+    this(string _ident, Type _type) { ident = _ident; type = _type; }
 }
 
 class StructDeclStmt : Stmt {
-    string name;
-    
+    string ident;
+    FieldStmt[] fields;
+
+    this(string _ident, FieldStmt[] _fields) { ident = _ident; fields = _fields; }
+}
+
+class FuncDeclStmt : Stmt {
+    string ident;
+    FieldStmt[] args;
+    Stmt[] body;
+
+    this(string _ident, FieldStmt[] _args, Stmt[] _body) { ident = _ident; args = _args; body = _body; }
+
 }

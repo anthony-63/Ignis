@@ -73,13 +73,13 @@ class Parser {
     }
 
     Token advance() {
-        auto t = current();
+        auto t = current;
         pos++;
         return t;
     }
 
     Token expect_error(TokenKind expected, string err) {
-        auto tok = current();
+        auto tok = current;
         auto kind = tok.kind;
 
         if(kind != expected) {
@@ -94,6 +94,6 @@ class Parser {
     }
 
     bool has_tokens() {
-        return pos < tokens.length && current().kind != TokenKind.EOF;
+        return pos < tokens.length && current.kind != TokenKind.EOF;
     }
 }

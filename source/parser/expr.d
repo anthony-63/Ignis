@@ -9,17 +9,18 @@ import lexer.tokens;
 import parser.parser;
 import parser.lookups;
 import ast.expressions;
+import parser.stmt;
 
 Expr parse_expr(Parser parser, BindingPower bp) {
-    auto kind = parser.current().kind;
+    auto kind = parser.current.kind;
     
     assert(kind in nud_lu, format("NUD function not existant for (%s)", kind));
 
     auto nud_fn = nud_lu[kind];
     auto left = nud_fn(parser);
     
-    while(parser.current().kind in bp_lu && bp_lu[parser.current().kind] > bp) {
-        kind = parser.current().kind;
+    while(parser.current.kind in bp_lu && bp_lu[parser.current.kind] > bp) {
+        kind = parser.current.kind;
         assert(kind in led_lu, format("LED function not existant for (%s)", kind));
         
         auto led_fn = led_lu[kind];
@@ -30,12 +31,12 @@ Expr parse_expr(Parser parser, BindingPower bp) {
 }
 
 Expr parse_primary_expr(Parser parser) {
-    switch(parser.current().kind) {
+    switch(parser.current.kind) {
         case TokenKind.INT: return new IntExpr(to!int(parser.advance().value)); break;
         case TokenKind.DECIMEL: return new FloatExpr(to!float(parser.advance().value)); break;
         case TokenKind.STRING: return new StringExpr(parser.advance().value); break;
         case TokenKind.IDENT: return new SymbolExpr(parser.advance().value); break;
-        default: assert(false, format("Failed to parse primary expression (%s)", parser.current().kind));
+        default: assert(false, format("Failed to parse primary expression (%s)", parser.current.kind));
     }
 }
 
@@ -46,9 +47,9 @@ Expr parse_arrow_expr(Parser parser, Expr left, BindingPower bp) {
     parser.expect(TokenKind.ARROW);
 
     switch(parser.advance().kind) {
-        case TokenKind.SUB: writeln("Function declaration(", symbol.value, ")"); break;
-        case TokenKind.STRUCT: writeln("Struct declaration(", symbol.value, ")"); break;
-        default: assert(false, format("Expected high level declaration but got %s", parser.current().kind));
+        case TokenKind.SUB: return new FuncDeclExprHack(parse_function_decl(parser, symbol)); break;
+        case TokenKind.STRUCT: return new StructDeclExprHack(parse_struct_decl(parser, symbol)); break;
+        default: assert(false, format("Expected high level declaration with arrow but got %s", parser.current.kind));
     }
 
     return new SymbolExpr("test");
@@ -61,7 +62,7 @@ Expr parse_array_expr(Parser parser) {
 
     while(true) {
         exprs ~= parse_expr(parser, BindingPower.Default);
-        if(parser.current().kind == TokenKind.CLOSE_BRACKET) break;
+        if(parser.current.kind == TokenKind.CLOSE_BRACKET) break;
         else parser.expect(TokenKind.COMMA);
     }
 

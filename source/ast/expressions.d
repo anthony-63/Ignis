@@ -2,6 +2,8 @@ module ast.expressions;
 
 import ast.ast;
 import lexer.tokens;
+import ast.statements;
+
 
 class IntExpr : Expr {
     int val;
@@ -40,4 +42,23 @@ class ArrayExpr : Expr {
     Expr[] data;
 
     this(Expr[] _data) { data = _data; }
+}
+
+class StructDeclExprHack : HackedExpr {
+    StructDeclStmt stmt;
+
+    this(Stmt _stmt) { stmt = cast(StructDeclStmt)_stmt; }
+
+    Stmt get_stmt() {
+        return stmt;
+    }
+}
+
+class FuncDeclExprHack : HackedExpr {
+    FuncDeclStmt stmt;
+    this(Stmt _stmt) { stmt = cast(FuncDeclStmt)_stmt; }
+
+    Stmt get_stmt() {
+        return stmt;
+    }
 }

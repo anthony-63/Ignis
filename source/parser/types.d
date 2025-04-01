@@ -44,14 +44,14 @@ Type parse_array_type(Parser parser) {
 }
 
 Type parse_type(Parser parser, BindingPower bp) {
-    auto kind = parser.current().kind;
+    auto kind = parser.current.kind;
     assert(kind in type_nud_lu, format("TYPE NUD function not existant for (%s)", kind));
 
     auto nud_fn = type_nud_lu[kind];
     auto left = nud_fn(parser);
     
-    while(parser.current().kind in type_bp_lu && type_bp_lu[parser.current().kind] > bp) {
-        kind = parser.current().kind;
+    while(parser.current.kind in type_bp_lu && type_bp_lu[parser.current.kind] > bp) {
+        kind = parser.current.kind;
         assert(kind in type_led_lu, format("TYPE LED function not existant for (%s)", kind));
         
         auto led_fn = type_led_lu[kind];

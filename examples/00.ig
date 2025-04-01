@@ -1,1 +1,3 @@
-immut test: []i32 = [30, 30, 30 * 20];
+main -> sub(args []string) void {
+    
+}
