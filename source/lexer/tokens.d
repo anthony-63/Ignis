@@ -59,6 +59,7 @@ enum TokenKind {
 
     SUB,
     STRUCT,
+    RETURN,
 
     IF,
     ELSE,
@@ -82,6 +83,7 @@ const TokenKind[string] reserved_keywords = [
     "immut": TokenKind.IMMUT,
     "sub": TokenKind.SUB,
     "struct": TokenKind.STRUCT,
+    "return": TokenKind.RETURN,
 ];
 
 struct Token {

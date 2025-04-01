@@ -5,7 +5,10 @@ import ast.ast;
 class SymbolType : Type {
     string name;
 
-    this(string _name) { name = _name; }
+    bool refed;
+
+    this(string _name) { name = _name; refed = false; }
+    this(string _name, bool _ref) { name = _name; refed = _ref; }
 }
 
 class ArrayType : Type {

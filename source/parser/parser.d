@@ -33,6 +33,9 @@ void setup_lookup_table() {
 
     led(TokenKind.ARROW, BindingPower.Primary, &parse_arrow_expr);
 
+    led(TokenKind.DOT, BindingPower.Member, &parse_dot_expr);
+    led(TokenKind.OPEN_PAREN, BindingPower.Call, &parse_call_expr);
+
     nud(TokenKind.INT, BindingPower.Primary, &parse_primary_expr);
     nud(TokenKind.DECIMEL, BindingPower.Primary, &parse_primary_expr);
     nud(TokenKind.STRING, BindingPower.Primary, &parse_primary_expr);
@@ -42,6 +45,7 @@ void setup_lookup_table() {
 
     stmt(TokenKind.MUT, &parse_var_decl_stmt);
     stmt(TokenKind.IMMUT, &parse_var_decl_stmt);
+    stmt(TokenKind.RETURN, &parse_ret_stmt);
 }
 
 void setup_type_lookup_table() {

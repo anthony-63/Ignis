@@ -79,3 +79,26 @@ Expr parse_binary_expr(Parser parser, Expr left, BindingPower bp) {
 
     return new BinExpr(left, op, right);
 }
+
+Expr parse_dot_expr(Parser parser, Expr left, BindingPower bp) {
+    assert(!is(left == SymbolExpr), "Expected Identifier on LHS of access expression");
+    parser.advance();
+    auto right = parser.expect(TokenKind.IDENT);
+    return new AccessExpr((cast(SymbolExpr)left).value, right.value);
+}
+
+Expr parse_call_expr(Parser parser, Expr left, BindingPower bp) {
+    assert(!is(left == SymbolExpr), "Expected Identifier on LHS of function call");
+    parser.advance();
+
+    Expr[] args;
+    while(parser.has_tokens() && parser.current.kind != TokenKind.CLOSE_PAREN) {
+        args ~= parse_expr(parser, BindingPower.Default);
+        if(parser.current.kind != TokenKind.CLOSE_PAREN) {
+            parser.expect(TokenKind.COMMA);
+        }
+    }
+    parser.expect(TokenKind.CLOSE_PAREN);
+
+    return new CallExpr((cast(SymbolExpr)left).value, args);
+}

@@ -27,6 +27,15 @@ Stmt parse_stmt(Parser parser) {
     return new ExprStmt(expr);
 }
 
+Stmt parse_ret_stmt(Parser parser) {
+    parser.advance();
+
+    auto val = parse_expr(parser, BindingPower.Default);
+    parser.expect(TokenKind.SEMICOLON);
+
+    return new ReturnStmt(val);
+}
+
 Stmt parse_var_decl_stmt(Parser parser) {
     auto mutable = parser.advance().kind == TokenKind.MUT;
 
@@ -54,15 +63,24 @@ Stmt parse_function_decl(Parser parser, SymbolExpr name) {
     writeln("|     FUNCTION DECL     |");
     writeln("-------------------------");
     writeln("subroutine name: ", name.value);
-
     FieldStmt[] args;
     while(parser.has_tokens() && parser.current.kind != TokenKind.CLOSE_PAREN) {
+        bool refed = false;
+        if(parser.current.kind == TokenKind.REF) {
+            refed = true;
+            parser.advance();
+        }
         auto field_name = parser.expect(TokenKind.IDENT);
         writeln("arg name: ", field_name);
-        auto type = parse_type(parser, BindingPower.Default);
-        writeln("arg type: ", type);
+        if(field_name.value == "this") {
+            args ~= new FieldStmt(field_name.value, new SymbolType("this", refed));
+        } else  {
+            auto type = parse_type(parser, BindingPower.Default);
+            writeln("arg type: ", type);
+            args ~= new FieldStmt(field_name.value, type);
+        }
 
-        args ~= new FieldStmt(field_name.value, type);
+
         if(parser.current.kind != TokenKind.CLOSE_PAREN) {
             parser.expect(TokenKind.COMMA);
         }
@@ -71,6 +89,7 @@ Stmt parse_function_decl(Parser parser, SymbolExpr name) {
     parser.expect(TokenKind.CLOSE_PAREN);
 
     Type return_type = new SymbolType("void");
+    writeln("return type: ", return_type);
 
     if(parser.current.kind == TokenKind.IDENT) {
         return_type = parse_type(parser, BindingPower.Member);

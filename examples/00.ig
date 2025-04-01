@@ -3,7 +3,7 @@ Person -> struct {
     test1 f32,
 
     add -> sub(b i32) i32 {
-        immut c = a + b;
+        return 1;
     }
 }
 

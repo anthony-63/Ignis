@@ -31,6 +31,12 @@ class FieldStmt : Stmt {
     this(string _ident, Type _type) { ident = _ident; type = _type; }
 }
 
+class ReturnStmt : Stmt {
+    Expr ret;
+
+    this(Expr _ret) { ret = _ret; }
+}
+
 class StructDeclStmt : Stmt {
     string ident;
     FieldStmt[] fields;
@@ -46,5 +52,4 @@ class FuncDeclStmt : Stmt {
     Stmt[] body;
 
     this(string _ident, FieldStmt[] _args, Stmt[] _body, Type _ret_type) { ident = _ident; args = _args; body = _body; return_type = _ret_type; }
-
 }
