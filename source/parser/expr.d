@@ -73,6 +73,18 @@ Expr parse_array_expr(Parser parser) {
     return new ArrayExpr(exprs);
 }
 
+Expr parse_prefix_expr(Parser parser) {
+    auto op = parser.advance();
+
+    auto kind = parser.current.kind;
+    
+    assert(kind in nud_lu, format("NUD function not existant for (%s)", kind));
+
+    auto nud_fn = nud_lu[kind];
+    auto rhs = nud_fn(parser);
+
+    return new PrefixExpr(op, rhs);
+}
 
 Expr parse_binary_expr(Parser parser, Expr left, BindingPower bp) {
     auto op = parser.advance();

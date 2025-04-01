@@ -51,6 +51,8 @@ void setup_lookup_table() {
 
     nud(TokenKind.OPEN_BRACKET, BindingPower.Member, &parse_array_expr);
 
+    nud(TokenKind.DASH, BindingPower.Primary, &parse_prefix_expr);
+
     stmt(TokenKind.MUT, &parse_var_decl_stmt);
     stmt(TokenKind.IMMUT, &parse_var_decl_stmt);
     stmt(TokenKind.RETURN, &parse_ret_stmt);

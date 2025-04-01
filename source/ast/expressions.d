@@ -38,6 +38,13 @@ class BinExpr : Expr {
     this(Expr l, Token o, Expr r) { left = l, op = o; right = r; }
 }
 
+class PrefixExpr : Expr {
+    Token op;
+    Expr right;
+
+    this(Token o, Expr r) { op = o; right = r; }
+}
+
 class ArrayExpr : Expr {
     Expr[] data;
 
@@ -76,8 +83,6 @@ class AssignmentExpr : Expr {
 
     this(string l, Expr r) { left = l, right = r; }
 }
-
-
 
 class StructCreateExpr : Expr {
     string name;
