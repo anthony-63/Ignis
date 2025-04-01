@@ -36,3 +36,8 @@ class BinExpr : Expr {
     this(Expr l, Token o, Expr r) { left = l, op = o; right = r; }
 }
 
+class ArrayExpr : Expr {
+    Expr[] data;
+
+    this(Expr[] _data) { data = _data; }
+}

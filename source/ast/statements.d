@@ -19,5 +19,17 @@ class VarDeclStmt : Stmt {
     bool mutable;
     Expr value;
 
-    this(string _ident, bool _mut, Expr _value) { ident = _ident; mutable = _mut; value = _value; }
+    Type explicit_type;
+
+    this(string _ident, bool _mut, Expr _value, Type _explicit) { ident = _ident; mutable = _mut; value = _value; explicit_type = _explicit; }
+}
+
+class StructFieldStmt : Stmt {
+    string identifier;
+    
+}
+
+class StructDeclStmt : Stmt {
+    string name;
+    
 }

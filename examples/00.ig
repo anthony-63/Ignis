@@ -1,3 +1,1 @@
-main -> func() void {
-    mut test: i32 = 10;
-}
+immut test: []i32 = [30, 30, 30 * 20];

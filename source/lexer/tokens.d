@@ -57,6 +57,9 @@ enum TokenKind {
 
     INCLUDE,
 
+    SUB,
+    STRUCT,
+
     IF,
     ELSE,
     FOR,
@@ -77,6 +80,8 @@ const TokenKind[string] reserved_keywords = [
     "typeof": TokenKind.TYPEOF,
     "mut": TokenKind.MUT,
     "immut": TokenKind.IMMUT,
+    "sub": TokenKind.SUB,
+    "struct": TokenKind.STRUCT,
 ];
 
 struct Token {

@@ -7,6 +7,7 @@ import ast.ast;
 import ast.statements;
 import parser.stmt;
 import parser.lookups;
+import parser.types;
 import parser.expr;
 
 void setup_lookup_table() {
@@ -28,13 +29,22 @@ void setup_lookup_table() {
     led(TokenKind.SLASH, BindingPower.Multiplicative, &parse_binary_expr);
     led(TokenKind.PERCENT, BindingPower.Multiplicative, &parse_binary_expr);
 
+    led(TokenKind.ARROW, BindingPower.Primary, &parse_arrow_expr);
+
     nud(TokenKind.INT, BindingPower.Primary, &parse_primary_expr);
     nud(TokenKind.DECIMEL, BindingPower.Primary, &parse_primary_expr);
     nud(TokenKind.STRING, BindingPower.Primary, &parse_primary_expr);
     nud(TokenKind.IDENT, BindingPower.Primary, &parse_primary_expr);
 
+    nud(TokenKind.OPEN_BRACKET, BindingPower.Member, &parse_array_expr);
+
     stmt(TokenKind.MUT, &parse_var_decl_stmt);
     stmt(TokenKind.IMMUT, &parse_var_decl_stmt);
+}
+
+void setup_type_lookup_table() {
+    type_nud(TokenKind.IDENT, &parse_symbol_type);
+    type_nud(TokenKind.OPEN_BRACKET, &parse_array_type);
 }
 
 class Parser {
@@ -44,6 +54,7 @@ class Parser {
     private this(Token[] _tokens) {
         tokens = _tokens;
         setup_lookup_table();
+        setup_type_lookup_table();
     }
 
     static BlockStmt parse(Token[] tokens) {
