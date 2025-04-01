@@ -51,6 +51,9 @@ enum TokenKind {
     SLASH,
     STAR,
     PERCENT,
+    ARROW,
+
+    REF,
 
     INCLUDE,
 

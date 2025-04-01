@@ -1,1 +1,3 @@
-mut test = 10 * 3 + 2;
+main -> func() void {
+    mut test: i32 = 10;
+}

@@ -30,6 +30,7 @@ class Lexer {
             RegexPattern(regex(r"[0-9]+"), integer_handler()),
             RegexPattern(regex(r"[0-9]+(\.[0-9]+)"), float_handler()),
             RegexPattern(regex(r"[a-zA-Z_][a-zA-Z0-9_]*"), symbol_handler()),
+            RegexPattern(regex(r"&"), default_handler(TokenKind.REF, "&")),
             RegexPattern(regex(r"\["), default_handler(TokenKind.OPEN_BRACKET, "[")),
 			RegexPattern(regex(r"\]"), default_handler(TokenKind.CLOSE_BRACKET, "]")),
 			RegexPattern(regex(r"\{"), default_handler(TokenKind.OPEN_CURLY, "{")),
@@ -61,6 +62,7 @@ class Lexer {
 			RegexPattern(regex(r"/"), default_handler(TokenKind.SLASH, "/")),
 			RegexPattern(regex(r"\*"), default_handler(TokenKind.STAR, "*")),
 			RegexPattern(regex(r"%"), default_handler(TokenKind.PERCENT, "%")),
+            RegexPattern(regex(r"->"), default_handler(TokenKind.ARROW, "->")),
         ]);
     }
 
