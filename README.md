@@ -9,4 +9,4 @@ Fast, compiled, statically typed system programming lanuage.
 ```
 ./ignis examples/01.ignis ./test
 ```
-you should now have ``./test`` :) 
+you should now have ``./test`` :)
