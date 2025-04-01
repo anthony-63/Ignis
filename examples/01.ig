@@ -24,18 +24,9 @@ main -> sub() void {
     p1.move(5, 7);
     log("Moved p1 to:", p1.x, p1.y);
 
-    for i in [0..5] {
-        log("Number:", i);
-    }
-
-    mut upper_bound = 3;
-    for i in [0..upper_bound] {
-        log("Range with upper bound variable:", i);
-    }
-
     immut constant_value = 10;
 }
 
 sqrt -> sub(x float64) float64 {
-    return x ** 0
+    return x ** 0;
 }

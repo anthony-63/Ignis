@@ -76,3 +76,13 @@ class AssignmentExpr : Expr {
 
     this(string l, Expr r) { left = l, right = r; }
 }
+
+
+
+class StructCreateExpr : Expr {
+    string name;
+
+    StructInitFieldStmt[] initializers;
+
+    this(string _name, StructInitFieldStmt[] _inits) { name = _name; initializers = _inits; }
+}

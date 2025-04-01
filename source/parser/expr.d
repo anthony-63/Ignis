@@ -9,6 +9,7 @@ import lexer.tokens;
 import parser.parser;
 import parser.lookups;
 import ast.expressions;
+import ast.statements;
 import parser.stmt;
 
 Expr parse_expr(Parser parser, BindingPower bp) {
@@ -128,4 +129,25 @@ Expr parse_op_equals_expr(Parser parser, Expr left, BindingPower bp) {
     parser.advance();
 
     return new AssignmentExpr(lhs, new BinExpr(left, Token(real_op, " "), parse_expr(parser, BindingPower.Default)));
+}
+
+Expr parse_struct_create_expr(Parser parser, Expr left, BindingPower bp) {
+    assert(!is(left == SymbolExpr), "Expected struct on LHS of initialization expression");
+    string name = (cast(SymbolExpr)left).value;
+
+    parser.advance();
+
+    StructInitFieldStmt[] fields;
+    while(parser.has_tokens() && parser.current.kind != TokenKind.CLOSE_CURLY) {
+        auto field_name = parser.expect(TokenKind.IDENT).value;
+        parser.expect(TokenKind.COLON);
+
+        fields ~= new StructInitFieldStmt(field_name, parse_expr(parser, BindingPower.Default));
+        if(parser.current.kind != TokenKind.CLOSE_CURLY) {
+            parser.expect(TokenKind.COMMA);
+        }
+    }
+    parser.expect(TokenKind.CLOSE_CURLY);
+
+    return new StructCreateExpr(name, fields);
 }

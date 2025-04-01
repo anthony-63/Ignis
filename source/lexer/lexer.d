@@ -60,6 +60,7 @@ class Lexer {
 			RegexPattern(regex(r"/"), default_handler(TokenKind.SLASH, "/")),
 			RegexPattern(regex(r"\*"), default_handler(TokenKind.STAR, "*")),
 			RegexPattern(regex(r"%"), default_handler(TokenKind.PERCENT, "%")),
+			RegexPattern(regex(r"\*\*"), default_handler(TokenKind.POW, "**")),
 			RegexPattern(regex(r"\+="), default_handler(TokenKind.PLUS_EQUALS, "+=")),
 			RegexPattern(regex(r"-="), default_handler(TokenKind.MINUS_EQUALS, "-=")),
             RegexPattern(regex(r"->"), default_handler(TokenKind.ARROW, "->")),

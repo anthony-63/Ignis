@@ -45,6 +45,13 @@ class StructDeclStmt : Stmt {
     this(string _ident, FieldStmt[] _fields, FuncDeclStmt[] _funcs) { ident = _ident; fields = _fields; funcs = _funcs; }
 }
 
+class StructInitFieldStmt : Stmt {
+    string name;
+    Expr value;
+
+    this(string _name, Expr _val) { name = _name; value = _val; }
+}
+
 class FuncDeclStmt : Stmt {
     string ident;
     Type return_type;

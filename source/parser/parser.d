@@ -30,6 +30,7 @@ void setup_lookup_table() {
     led(TokenKind.ASSIGNMENT, BindingPower.Assignment, &parse_assignment_expr);
 
     led(TokenKind.STAR, BindingPower.Multiplicative, &parse_binary_expr);
+    led(TokenKind.POW, BindingPower.Multiplicative, &parse_binary_expr);
     led(TokenKind.SLASH, BindingPower.Multiplicative, &parse_binary_expr);
     led(TokenKind.PERCENT, BindingPower.Multiplicative, &parse_binary_expr);
 
@@ -40,6 +41,8 @@ void setup_lookup_table() {
 
     led(TokenKind.PLUS_EQUALS, BindingPower.Call, &parse_op_equals_expr);
     led(TokenKind.MINUS_EQUALS, BindingPower.Call, &parse_op_equals_expr);
+
+    led(TokenKind.OPEN_CURLY, BindingPower.Member, &parse_struct_create_expr);
 
     nud(TokenKind.INT, BindingPower.Primary, &parse_primary_expr);
     nud(TokenKind.DECIMEL, BindingPower.Primary, &parse_primary_expr);
