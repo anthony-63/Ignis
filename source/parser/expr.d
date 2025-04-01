@@ -12,12 +12,13 @@ import ast.expressions;
 
 Expr parse_expr(Parser parser, BindingPower bp) {
     auto kind = parser.current().kind;
+    
     assert(kind in nud_lu, format("NUD function not existant for (%s)", kind));
 
     auto nud_fn = nud_lu[kind];
-
     auto left = nud_fn(parser);
-    while(bp_lu[parser.current().kind] > bp) {
+    
+    while(parser.current().kind in bp_lu && bp_lu[parser.current().kind] > bp) {
         kind = parser.current().kind;
         assert(kind in led_lu, format("LED function not existant for (%s)", kind));
         
@@ -29,7 +30,6 @@ Expr parse_expr(Parser parser, BindingPower bp) {
 }
 
 Expr parse_primary_expr(Parser parser) {
-    writeln("primary: ", parser.current());
     switch(parser.current().kind) {
         case TokenKind.INT: return new NumberExpr(to!int(parser.advance().value)); break;
         case TokenKind.DECIMEL: return new NumberExpr(to!float(parser.advance().value)); break;
@@ -40,7 +40,6 @@ Expr parse_primary_expr(Parser parser) {
 }
 
 Expr parse_binary_expr(Parser parser, Expr left, BindingPower bp) {
-    writeln("binary: ", parser.current());
     auto op = parser.advance();
     auto right = parse_expr(parser, bp);
 

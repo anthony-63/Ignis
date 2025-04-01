@@ -23,5 +23,5 @@ void main(string[] args) {
 
 	auto ast = Parser.parse(tokens);
 
-	writeln(ast);
+	writeln(ast.body);
 }
