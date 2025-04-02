@@ -4,7 +4,7 @@ Game -> struct {
 
 main -> sub(args []str) void {
     immut i: f32 = 10;
-    immut b = -1;
+    immut b = (-1 + 3) * 2;
 
     
 }

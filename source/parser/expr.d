@@ -73,6 +73,15 @@ Expr parse_array_expr(Parser parser) {
     return new ArrayExpr(exprs);
 }
 
+Expr parse_grouped_expr(Parser parser) {
+    parser.advance();
+
+    auto expr = parse_expr(parser, BindingPower.Default);
+    parser.expect(TokenKind.CLOSE_PAREN);
+
+    return expr;
+}
+
 Expr parse_prefix_expr(Parser parser) {
     auto op = parser.advance();
 

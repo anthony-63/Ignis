@@ -40,8 +40,7 @@ void led(TokenKind kind, BindingPower bp, LEDHandler handler) {
     led_lu[kind] = handler;
 }
 
-void nud(TokenKind kind, BindingPower bp, NUDHandler handler) {
-    bp_lu[kind] = bp;
+void nud(TokenKind kind, NUDHandler handler) {
     nud_lu[kind] = handler;
 }
 

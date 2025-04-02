@@ -44,15 +44,15 @@ void setup_lookup_table() {
 
     led(TokenKind.OPEN_CURLY, BindingPower.Member, &parse_struct_create_expr);
 
-    nud(TokenKind.INT, BindingPower.Primary, &parse_primary_expr);
-    nud(TokenKind.DECIMEL, BindingPower.Primary, &parse_primary_expr);
-    nud(TokenKind.STRING, BindingPower.Primary, &parse_primary_expr);
-    nud(TokenKind.IDENT, BindingPower.Default, &parse_primary_expr);
+    nud(TokenKind.INT, &parse_primary_expr);
+    nud(TokenKind.DECIMEL, &parse_primary_expr);
+    nud(TokenKind.STRING, &parse_primary_expr);
+    nud(TokenKind.IDENT, &parse_primary_expr);
 
-    nud(TokenKind.OPEN_BRACKET, BindingPower.Member, &parse_array_expr);
-
-    nud(TokenKind.DASH, BindingPower.Primary, &parse_prefix_expr);
-
+    nud(TokenKind.OPEN_BRACKET, &parse_array_expr);
+    nud(TokenKind.OPEN_PAREN, &parse_grouped_expr);
+    
+    nud(TokenKind.DASH, &parse_prefix_expr);
     stmt(TokenKind.MUT, &parse_var_decl_stmt);
     stmt(TokenKind.IMMUT, &parse_var_decl_stmt);
     stmt(TokenKind.RETURN, &parse_ret_stmt);
