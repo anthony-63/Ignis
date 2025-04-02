@@ -61,10 +61,10 @@ Stmt parse_var_decl_stmt(Parser parser) {
 Stmt parse_function_decl(Parser parser, SymbolExpr name) {
     parser.expect(TokenKind.OPEN_PAREN);
 
-    writeln("-------------------------");
-    writeln("|     FUNCTION DECL     |");
-    writeln("-------------------------");
-    writeln("subroutine name: ", name.value);
+    // writeln("-------------------------");
+    // writeln("|     FUNCTION DECL     |");
+    // writeln("-------------------------");
+    // writeln("subroutine name: ", name.value);
     FieldStmt[] args;
     while(parser.has_tokens() && parser.current.kind != TokenKind.CLOSE_PAREN) {
         auto field_name = parser.advance();
@@ -73,16 +73,14 @@ Stmt parse_function_decl(Parser parser, SymbolExpr name) {
             else if(field_name.kind == TokenKind.IDENT) args ~= new FieldStmt("this", new SymbolType("this"));
             else assert(false, format("Invalid 'this' argument in function '%s'", name.value));
             if(parser.current.value == "this") parser.advance();
-            writeln("'this' arg passed in by type: ", args[$-1].type);
-
+            // writeln("'this' arg passed in by type: ", args[$-1].type);
         } else {
             auto type = parse_type(parser, BindingPower.Default);
-            writeln("arg type: ", type);
+            // writeln("arg type: ", type);
             args ~= new FieldStmt(field_name.value, type);
-            writeln("arg name: ", field_name);
+            // writeln("arg name: ", field_name);
 
         }
-
 
         if(parser.current.kind != TokenKind.CLOSE_PAREN) {
             parser.expect(TokenKind.COMMA);
@@ -92,7 +90,7 @@ Stmt parse_function_decl(Parser parser, SymbolExpr name) {
     parser.expect(TokenKind.CLOSE_PAREN);
 
     Type return_type = new SymbolType("void");
-    writeln("return type: ", return_type);
+    // writeln("return type: ", return_type);
 
     if(parser.current.kind == TokenKind.IDENT) {
         return_type = parse_type(parser, BindingPower.Member);
@@ -105,41 +103,40 @@ Stmt parse_function_decl(Parser parser, SymbolExpr name) {
         body ~= parse_stmt(parser);
     }
 
-    writeln(body);
-
+    // writeln(body);
 
     parser.expect(TokenKind.CLOSE_CURLY);
 
-    return new ExprStmt(new SymbolExpr(""));
+    return new FuncDeclStmt(name.value, args, body, return_type);
 }
 
 Stmt parse_struct_decl(Parser parser, SymbolExpr name) {
     parser.expect(TokenKind.OPEN_CURLY);
-    writeln();
+    // writeln();
 
-    writeln("-------------------------");
-    writeln("|      STRUCT DECL      |");
-    writeln("-------------------------");
-    writeln("struct name: ", name.value);
+    // writeln("-------------------------");
+    // writeln("|      STRUCT DECL      |");
+    // writeln("-------------------------");
+    // writeln("struct name: ", name.value);
 
     FieldStmt[] fields;
     FuncDeclStmt[] funcs;
 
     while(parser.has_tokens() && parser.current.kind != TokenKind.CLOSE_CURLY) {
         auto field_name = parser.expect(TokenKind.IDENT);
-        writeln("field name: ", field_name);
+        // writeln("field name: ", field_name);
 
         if(parser.current.kind == TokenKind.ARROW) {
             parser.advance();
             parser.expect(TokenKind.SUB);
-            writeln("-------------------------");
-            writeln("|      MEMBER FUNC      |");
+            // writeln("-------------------------");
+            // writeln("|      MEMBER FUNC      |");
             funcs ~= cast(FuncDeclStmt)parse_function_decl(parser, new SymbolExpr(field_name.value));
             continue;
         }
 
         auto type = parse_type(parser, BindingPower.Default);
-        writeln("field type: ", type);
+        // writeln("field type: ", type);
 
         fields ~= new FieldStmt(field_name.value, type);
         if(parser.current.kind != TokenKind.CLOSE_CURLY) {

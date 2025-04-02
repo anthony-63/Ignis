@@ -27,6 +27,6 @@ main -> sub() void {
     immut constant_value = 10;
 }
 
-sqrt -> sub(x float64) float64 {
+sqrt -> sub(x f32) f32 {
     return x ** 0;
 }
