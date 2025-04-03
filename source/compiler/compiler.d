@@ -89,9 +89,17 @@ class Compiler {
             visit_ret(ret);
         } else if(auto fdecl = cast(FuncDeclStmt)stmt) {
             visit_function_decl(fdecl);
-        } else {
+        } 
+        // else if(auto ifstmt = cast(IfStmt)stmt) {
+        //     visit_if(ifstmt);  
+        // } 
+        else {
             assert(false, format("Unsupported statement %s", stmt));
         }
+    }
+
+    void visit_if(IfStmt stmt) {
+        // TODO
     }
 
     void visit_expr(Expr expr) {
@@ -226,8 +234,9 @@ class Compiler {
             auto val = visit_binexpr(binexpr);
             return IGValue(val.value, val.type);
         } else if(auto str = cast(StringExpr)value) {
-            auto val = LLVMBuildGlobalString(builder, str.value.toStringz(), "".toStringz());
-            return IGValue(val, LLVMArrayType(LLVMInt8Type(), cast(uint)str.value.length+1));
+            auto type = LLVMPointerType(type_map["i8"], 0);
+            auto val = LLVMBuildPointerCast(builder, LLVMBuildGlobalString(builder, str.value.toStringz(), "".toStringz()), type, "0".toStringz());
+            return IGValue(val, type);
         }
 
         assert(false, format("Unsupported value: %s", value));

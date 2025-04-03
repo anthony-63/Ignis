@@ -52,10 +52,37 @@ Stmt parse_var_decl_stmt(Parser parser) {
 
     parser.expect(TokenKind.ASSIGNMENT);
 
-    auto val = parse_expr(parser, BindingPower.Assignment);
+    auto val = parse_expr(parser, BindingPower.Default);
     parser.expect(TokenKind.SEMICOLON);
 
     return new VarDeclStmt(name, mutable, val, explicit_type);
+}
+
+Stmt parse_if_stmt(Parser parser) {
+    parser.advance();
+    auto cond = parse_expr(parser, BindingPower.Default);
+    Stmt[] body = [];
+    Stmt[] _else = [];
+
+    parser.expect(TokenKind.OPEN_CURLY);
+    while(parser.has_tokens() && parser.current.kind != TokenKind.CLOSE_CURLY) {
+        body ~= parse_stmt(parser);
+    }
+    parser.expect(TokenKind.CLOSE_CURLY);
+    
+    if(parser.advance().kind == TokenKind.ELSE) {
+        if(parser.current.kind == TokenKind.IF) {
+            _else ~= parse_if_stmt(parser);
+        } else {
+            parser.expect(TokenKind.OPEN_CURLY);
+            while(parser.has_tokens() && parser.current.kind != TokenKind.CLOSE_CURLY) {
+                _else ~= parse_stmt(parser);
+            }
+            parser.expect(TokenKind.CLOSE_CURLY);
+        }
+    }
+
+    return new IfStmt(cond, body, _else);
 }
 
 Stmt parse_function_decl(Parser parser, SymbolExpr name) {

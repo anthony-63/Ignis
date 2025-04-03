@@ -19,7 +19,6 @@ Expr parse_expr(Parser parser, BindingPower bp) {
 
     auto nud_fn = nud_lu[kind];
     auto left = nud_fn(parser);
-    
     while(parser.current.kind in bp_lu && bp_lu[parser.current.kind] > bp) {
         kind = parser.current.kind;
         assert(kind in led_lu, format("LED function not existant for (%s)", kind));
@@ -152,9 +151,9 @@ Expr parse_op_equals_expr(Parser parser, Expr left, BindingPower bp) {
     return new AssignmentExpr(lhs, new BinExpr(left, Token(real_op, " "), parse_expr(parser, BindingPower.Default)));
 }
 
-Expr parse_struct_create_expr(Parser parser, Expr left, BindingPower bp) {
-    assert(!is(left == SymbolExpr), "Expected struct on LHS of initialization expression");
-    string name = (cast(SymbolExpr)left).value;
+Expr parse_struct_create_expr(Parser parser) {
+    parser.advance();
+    string name = parser.expect(TokenKind.IDENT).value;
 
     parser.advance();
 

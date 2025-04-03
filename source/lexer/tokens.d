@@ -70,6 +70,8 @@ enum TokenKind {
     SIZEOF,
     MUT,
     IMMUT,
+
+    NEW,
 }
 
 const TokenKind[string] reserved_keywords = [
@@ -85,6 +87,7 @@ const TokenKind[string] reserved_keywords = [
     "sub": TokenKind.SUB,
     "struct": TokenKind.STRUCT,
     "return": TokenKind.RETURN,
+    "new": TokenKind.NEW,
 ];
 
 struct Token {

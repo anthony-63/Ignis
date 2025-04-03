@@ -24,6 +24,14 @@ class VarDeclStmt : Stmt {
     this(string _ident, bool _mut, Expr _value, Type _explicit) { ident = _ident; mutable = _mut; value = _value; explicit_type = _explicit; }
 }
 
+class IfStmt : Stmt {
+    Expr cond;
+    Stmt[] body;
+    Stmt[] _else;
+
+    this(Expr _cond, Stmt[] _body, Stmt[] __else) { cond = _cond; body = _body; _else = __else; }
+}
+
 class FieldStmt : Stmt {
     string ident;
     Type type;

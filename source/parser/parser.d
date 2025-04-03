@@ -42,7 +42,7 @@ void setup_lookup_table() {
     led(TokenKind.PLUS_EQUALS, BindingPower.Call, &parse_op_equals_expr);
     led(TokenKind.MINUS_EQUALS, BindingPower.Call, &parse_op_equals_expr);
 
-    led(TokenKind.OPEN_CURLY, BindingPower.Member, &parse_struct_create_expr);
+    nud(TokenKind.NEW, &parse_struct_create_expr);
 
     nud(TokenKind.INT, &parse_primary_expr);
     nud(TokenKind.DECIMEL, &parse_primary_expr);
@@ -52,7 +52,10 @@ void setup_lookup_table() {
     nud(TokenKind.OPEN_BRACKET, &parse_array_expr);
     nud(TokenKind.OPEN_PAREN, &parse_grouped_expr);
     
+
     nud(TokenKind.DASH, &parse_prefix_expr);
+
+    stmt(TokenKind.IF, &parse_if_stmt);
     stmt(TokenKind.MUT, &parse_var_decl_stmt);
     stmt(TokenKind.IMMUT, &parse_var_decl_stmt);
     stmt(TokenKind.RETURN, &parse_ret_stmt);
