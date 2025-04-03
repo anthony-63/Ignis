@@ -1,4 +1,5 @@
 main -> sub() i32 {
-    immut b = 4 * 1;
+    mut b = 1;
+    b = 2;
     return b;
 }

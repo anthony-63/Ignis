@@ -24,8 +24,9 @@ class IGScope {
         return new IGScope(symbols, name, parent);
     }
 
-    LLVMValueRef define(string name, LLVMValueRef value, LLVMTypeRef type) {
+    LLVMValueRef define(string name, LLVMValueRef value, LLVMTypeRef type, bool mutable=true) {
         symbols[name] = IGValue(value, type);
+        symbols[name].mutable = mutable;
         return value;
     }
 

@@ -76,7 +76,7 @@ class Compiler {
         wait(pid);
         pid = spawnProcess(["gcc", asm_file, "-o", output]);
         wait(pid);
-        remove(ll_file);
+        // remove(ll_file);
         remove(asm_file);
     }
 
@@ -97,7 +97,24 @@ class Compiler {
     void visit_expr(Expr expr) {
         if(auto binexpr = cast(BinExpr)expr) {
             visit_binexpr(binexpr);
+        } else if(auto assign = cast(AssignmentExpr)expr) {
+            visit_assign(assign);
         }
+    }
+
+    void visit_assign(AssignmentExpr assign) {
+        auto val = resolve_value(assign.right);
+        auto left = current_scope.lookup(assign.left);
+
+        if(!left.resolved) {
+            assert(false, format("Assignemnt to variable '%s' before declaration", assign.left));
+        }
+
+        if(!left.mutable) {
+            assert(false, format("Attempted to assign to immutable variable '%s'", assign.left));
+        }
+
+        LLVMBuildStore(builder, val.value, left.value);
     }
 
     IGValue visit_binexpr(BinExpr binexpr) {
@@ -122,7 +139,7 @@ class Compiler {
         if(!current_scope.lookup(name).resolved) {
             auto alloca = LLVMBuildAlloca(builder, val.type, name.toStringz());
             LLVMBuildStore(builder, val.value, alloca);
-            current_scope.define(name, alloca, val.type);
+            current_scope.define(name, alloca, val.type, decl.mutable);
         } else {
             assert(false, format("Cannot redefine variable %s", name));
         }
@@ -208,6 +225,9 @@ class Compiler {
         } else if(auto binexpr = cast(BinExpr)value) {
             auto val = visit_binexpr(binexpr);
             return IGValue(val.value, val.type);
+        } else if(auto str = cast(StringExpr)value) {
+            auto val = LLVMBuildGlobalString(builder, str.value.toStringz(), "".toStringz());
+            return IGValue(val, LLVMArrayType(LLVMInt8Type(), cast(uint)str.value.length+1));
         }
 
         assert(false, format("Unsupported value: %s", value));

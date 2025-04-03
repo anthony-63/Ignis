@@ -8,6 +8,8 @@ struct IGValue {
 
     bool resolved = true;
 
+    bool mutable = true;
+
     bool is_type(LLVMTypeRef _type) {
         return LLVMGetTypeKind(type) == LLVMGetTypeKind(_type);
     }
