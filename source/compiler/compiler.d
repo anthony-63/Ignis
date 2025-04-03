@@ -74,7 +74,7 @@ class Compiler {
         LLVMPrintModuleToFile(_module, ll_file.toStringz(), null);
         auto pid = spawnProcess(["llc", ll_file, "-o", asm_file]);
         wait(pid);
-        pid = spawnProcess(["gcc", asm_file, "-o", output]);
+        pid = spawnProcess(["gcc", asm_file, "-o", output, "-no-pie"]);
         wait(pid);
         // remove(ll_file);
         remove(asm_file);
