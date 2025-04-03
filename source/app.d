@@ -4,10 +4,13 @@ import std.file;
 import lexer.lexer;
 import parser.parser;
 import compiler.compiler;
+import llvm;
 
 void usage(string filename) {
 	writefln("Usage: %s <input> <output>", filename);
 }
+
+pragma(lib, "/usr/lib/llvm-10/lib/libLLVM-10.so");
 
 void main(string[] args) {
 	auto filename = args[0];
@@ -15,6 +18,10 @@ void main(string[] args) {
 		usage(filename);
 		return;
 	}
+
+	LLVMInitializeNativeTarget();
+    LLVMInitializeNativeAsmPrinter();
+    LLVMInitializeNativeAsmParser();
 
 	auto source = readText(args[1]);
 	
