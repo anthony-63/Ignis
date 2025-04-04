@@ -1,1 +1,0 @@
-immut test = 1;
