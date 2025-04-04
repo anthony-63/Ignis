@@ -1,5 +1,10 @@
 main -> sub() i32 {
-    mut b = "hi";
-    b = "hello";
-    return 0;
+    immut b = 5;
+    if b > 11 {
+        return 1;
+    } else if b == 10 {
+        return 2;
+    } else {
+    }
+    return b;
 }

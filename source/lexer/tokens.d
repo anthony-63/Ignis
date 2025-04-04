@@ -21,6 +21,10 @@ enum TokenKind {
     CLOSE_PAREN,
 
     ASSIGNMENT,
+
+
+    CMPEXPR_START,
+
     EQUALS,
     NOT,
     NOT_EQUALS,
@@ -32,6 +36,9 @@ enum TokenKind {
 
     OR,
     AND,
+
+    CMPEXPR_END,
+
 
     DOT,
     RANGE,

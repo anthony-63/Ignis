@@ -35,15 +35,13 @@ class IGScope {
     }
 
     private IGValue resolve(string name) {
-        if(symbols.length < 1) return IGValue(null, null, false);
         if(name in symbols) {
             return symbols[name];
         }
-        auto tryresolve = parent.resolve(name);
-        if(tryresolve.resolved) {
-            return tryresolve;
-        } else {
-            return IGValue(null, null, false);
+        if(parent !is null) {
+            auto tryresolve = parent.resolve(name);
+            if(tryresolve.resolved) return tryresolve;
         }
+        return IGValue(null, null, false);
     }
 }
