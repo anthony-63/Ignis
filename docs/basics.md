@@ -12,9 +12,7 @@ main -> sub() {
 }
 ```
 
-### Explanation
-First you have the include statement which inclues the input output file from the standard library, which is packaged with the compiler
-#### Include rules
+### Include rules
 - Every global symbol created is exported by default
 
 - Any symbols included by a file is not exported by the parent
