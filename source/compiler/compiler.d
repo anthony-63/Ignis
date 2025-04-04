@@ -125,8 +125,6 @@ class Compiler {
         
         LLVMPositionBuilderAtEnd(builder, elsebb);
 
-
-
         if(stmt._else.length < 1) {
             LLVMBuildBr(builder, mergebb);
             return mergebb;
@@ -280,8 +278,11 @@ class Compiler {
             case TokenKind.STAR: return (floating ? LLVMBuildFMul(builder, lhs, rhs, name) : LLVMBuildMul(builder, lhs, rhs, name));
             case TokenKind.SLASH: return (floating ? LLVMBuildFDiv(builder, lhs, rhs, name) : LLVMBuildSDiv(builder, lhs, rhs, name));
             case TokenKind.GREATER: return (floating ? LLVMBuildFCmp(builder, LLVMRealUGT, lhs, rhs, name) : LLVMBuildICmp(builder, LLVMIntUGT, lhs, rhs, name));
+            case TokenKind.GREATER_EQUALS: return (floating ? LLVMBuildFCmp(builder, LLVMRealUGE, lhs, rhs, name) : LLVMBuildICmp(builder, LLVMIntUGE, lhs, rhs, name));
             case TokenKind.LESS: return (floating ? LLVMBuildFCmp(builder, LLVMRealULT, lhs, rhs, name) : LLVMBuildICmp(builder, LLVMIntULT, lhs, rhs, name));
+            case TokenKind.LESS_EQUALS: return (floating ? LLVMBuildFCmp(builder, LLVMRealULE, lhs, rhs, name) : LLVMBuildICmp(builder, LLVMIntULE, lhs, rhs, name));
             case TokenKind.EQUALS: return (floating ? LLVMBuildFCmp(builder, LLVMRealUEQ, lhs, rhs, name) : LLVMBuildICmp(builder, LLVMIntEQ, lhs, rhs, name));
+            case TokenKind.NOT_EQUALS: return (floating ? LLVMBuildFCmp(builder, LLVMRealUNE, lhs, rhs, name) : LLVMBuildICmp(builder, LLVMIntNE, lhs, rhs, name));
             default: assert(false, format("Invalid operation %s", op));
         }
     }
