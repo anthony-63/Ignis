@@ -3,6 +3,7 @@ module parser.expr;
 import std.conv;
 import std.stdio;
 import std.format;
+import std.array;
 
 import ast.ast;
 import lexer.tokens;
@@ -30,11 +31,15 @@ Expr parse_expr(Parser parser, BindingPower bp) {
     return left;
 }
 
+private string fix_str(string str) {
+    return str.replace("\\n", "\n");
+}
+
 Expr parse_primary_expr(Parser parser) {
     switch(parser.current.kind) {
         case TokenKind.INT: return new IntExpr(to!int(parser.advance().value)); break;
         case TokenKind.DECIMEL: return new FloatExpr(to!float(parser.advance().value)); break;
-        case TokenKind.STRING: return new StringExpr(parser.advance().value); break;
+        case TokenKind.STRING: return new StringExpr(fix_str(parser.advance().value)); break;
         case TokenKind.IDENT: return new SymbolExpr(parser.advance().value); break;
         default: assert(false, format("Failed to parse primary expression (%s)", parser.current.kind));
     }
@@ -49,6 +54,7 @@ Expr parse_arrow_expr(Parser parser, Expr left, BindingPower bp) {
     switch(parser.advance().kind) {
         case TokenKind.SUB: return new FuncDeclExprHack(parse_function_decl(parser, symbol)); break;
         case TokenKind.STRUCT: return new StructDeclExprHack(parse_struct_decl(parser, symbol)); break;
+        case TokenKind.EXTERN: return new ExternExprHack(parse_extern_stmt(parser, symbol)); break;
         default: assert(false, format("Expected high level declaration with arrow but got %s", parser.current.kind));
     }
 

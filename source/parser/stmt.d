@@ -38,6 +38,16 @@ Stmt parse_ret_stmt(Parser parser) {
     return new ReturnStmt(val);
 }
 
+Stmt parse_link_static_stmt(Parser parser) {
+    parser.advance();
+    return new LinkStmt(parser.expect(TokenKind.STRING).value, true);
+}
+
+Stmt parse_link_lib_stmt(Parser parser) {
+    parser.advance();
+    return new LinkStmt(parser.expect(TokenKind.STRING).value, false);
+}
+
 Stmt parse_var_decl_stmt(Parser parser) {
     auto mutable = parser.advance().kind == TokenKind.MUT;
 
@@ -174,4 +184,42 @@ Stmt parse_struct_decl(Parser parser, SymbolExpr name) {
     parser.advance();
 
     return new StructDeclStmt(name.value, fields, funcs);
+}
+
+Stmt parse_extern_stmt(Parser parser, SymbolExpr name) {
+    auto symbol = name.value;
+    if(parser.current.kind == TokenKind.OPEN_BRACKET) {
+        parser.advance();
+        symbol = parser.expect(TokenKind.IDENT).value;
+        parser.expect(TokenKind.CLOSE_BRACKET);
+    }
+
+    parser.expect(TokenKind.OPEN_PAREN);
+
+    FieldStmt[] args;
+
+    while(parser.has_tokens() && parser.current.kind != TokenKind.CLOSE_PAREN) {
+        auto field_name = "";
+        if(parser.current.kind == TokenKind.IDENT) {
+            field_name = parser.advance().value;
+        }
+    
+        auto type = parse_type(parser, BindingPower.Default);
+        args ~= new FieldStmt(field_name, type);
+
+        if(parser.current.kind != TokenKind.CLOSE_PAREN) {
+            parser.expect(TokenKind.COMMA);
+        }
+    }
+
+    parser.expect(TokenKind.CLOSE_PAREN);
+
+    Type return_type = new SymbolType("void");
+    if(parser.current.kind == TokenKind.IDENT) {
+        return_type = parse_type(parser, BindingPower.Member);
+    }
+
+    parser.expect(TokenKind.SEMICOLON);
+
+    return new ExternStmt(name.value, symbol, return_type, args);
 }

@@ -61,6 +61,16 @@ class StructDeclExprHack : HackedExpr {
     }
 }
 
+class ExternExprHack : HackedExpr {
+    ExternStmt stmt;
+
+    this(Stmt _stmt) { stmt = cast(ExternStmt)_stmt; }
+
+    Stmt get_stmt() {
+        return stmt;
+    }
+}
+
 class FuncDeclExprHack : HackedExpr {
     FuncDeclStmt stmt;
     this(Stmt _stmt) { stmt = cast(FuncDeclStmt)_stmt; }

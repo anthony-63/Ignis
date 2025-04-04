@@ -59,6 +59,8 @@ void setup_lookup_table() {
     stmt(TokenKind.MUT, &parse_var_decl_stmt);
     stmt(TokenKind.IMMUT, &parse_var_decl_stmt);
     stmt(TokenKind.RETURN, &parse_ret_stmt);
+    stmt(TokenKind.LINKSTATIC, &parse_link_static_stmt);
+    stmt(TokenKind.LINKLIB, &parse_link_lib_stmt);
 }
 
 void setup_type_lookup_table() {

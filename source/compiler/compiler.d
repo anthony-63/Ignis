@@ -25,10 +25,17 @@ import uid;
 import compiler.igscope;
 import compiler.value;
 
+struct IGLib {
+    string lib;
+    bool _static = false;
+}
+
 class Compiler {
     Stmt[] ast;
 
     LLVMTypeRef[string] type_map;
+
+    IGLib[] libs;
 
     LLVMContextRef ctx;
 
@@ -36,6 +43,8 @@ class Compiler {
     LLVMBuilderRef builder;
 
     IGScope current_scope;
+
+    LLVMValueRef[string] extern_map;
 
     this(BlockStmt root) {
         ast = root.body;
@@ -58,12 +67,16 @@ class Compiler {
             "f64": LLVMDoubleTypeInContext(ctx),
 
             "bool": LLVMIntTypeInContext(ctx, 1),
+            "string": LLVMPointerType(LLVMInt8TypeInContext(ctx), 0),
+            "void": LLVMVoidTypeInContext(ctx),
         ];
     }
 
     LLVMTypeRef get_type(Type type) {
         if(auto t = cast(SymbolType)type) {
             return type_map[t.name];
+        } else if(auto t = cast(RefType)type) {
+            return LLVMPointerType(get_type(t.inner), 0);  
         } else {
             assert(false, format("No support for %s types", type));
         }
@@ -78,7 +91,12 @@ class Compiler {
         LLVMPrintModuleToFile(_module, ll_file.toStringz(), null);
         auto pid = spawnProcess(["llc", ll_file, "-o", asm_file]);
         wait(pid);
-        pid = spawnProcess(["gcc", asm_file, "-o", output, "-no-pie"]);
+        auto args = ["gcc", asm_file, "-o", output, "-no-pie"];
+        foreach(lib; libs) {
+            auto ls = lib._static ? lib.lib : "-l" ~ lib.lib;
+            args ~= ls;
+        }
+        pid = spawnProcess(args);
         wait(pid);
         // remove(ll_file);
         remove(asm_file);
@@ -95,9 +113,44 @@ class Compiler {
             visit_function_decl(fdecl);
         }  else if(auto ifstmt = cast(IfStmt)stmt) {
             visit_if(ifstmt);  
-        }  else {
+        } else if(auto lib = cast(LinkStmt)stmt) {
+            add_lib(lib);
+        } else if(auto ext = cast(ExternStmt)stmt) {
+            visit_extern(ext);
+        } else {
             assert(false, format("Unsupported statement %s", stmt));
         }
+    }
+
+    LLVMTypeRef[] get_arg_types(FieldStmt[] args) {
+        LLVMTypeRef[] types;
+        foreach(arg; args) types ~= get_type(arg.type);
+        return types;
+    }
+
+    LLVMValueRef[] get_arg_values(Expr[] args) {
+        LLVMValueRef[] values;
+        foreach(arg; args) values ~= resolve_value(arg).value;
+        return values;
+    }
+
+    void visit_extern(ExternStmt ext) {
+        auto types = get_arg_types(ext.args);
+        auto ret_type = get_type(ext.return_type);
+        auto func_type = LLVMFunctionType(ret_type, types.ptr, cast(uint)types.length, 0);
+        auto func = LLVMAddFunction(_module, ext.symbol.toStringz(), func_type);
+        
+        auto top = current_scope;
+        while(true) {
+            if(top.parent is null) {
+                top.define(ext.name, func, func_type, false);
+                break;
+            }
+        }
+    }
+
+    void add_lib(LinkStmt stmt) {
+        libs ~= IGLib(stmt.lib, stmt._static);
     }
 
     void visit_block(Stmt[] block) {
@@ -160,6 +213,8 @@ class Compiler {
             visit_binexpr(binexpr);
         } else if(auto assign = cast(AssignmentExpr)expr) {
             visit_assign(assign);
+        } else if(auto call = cast(CallExpr)expr) {
+            build_call_expr(call);
         }
     }
 
@@ -215,6 +270,20 @@ class Compiler {
         return LLVMGetBasicBlockParent(bl);
     }
 
+    IGValue build_call_expr(CallExpr call) {
+        auto f = current_scope.lookup(call.name);
+        if(!f.resolved) {
+           assert(false, format("Failed to resolve function %s", call.name));
+        }
+        auto args = get_arg_values(call.args);
+
+        if(type_map["void"] == f.type) {
+            LLVMBuildCall(builder, f.value, args.ptr, cast(uint)args.length, "".toStringz());
+            return IGValue(null, null, false);
+        }
+        return IGValue(LLVMBuildCall(builder, f.value, args.ptr, cast(uint)args.length, newid().toStringz()), f.type);
+    }
+
     void visit_var_decl(VarDeclStmt decl, bool dont_define=false) {
         auto name = decl.ident;
         auto val = resolve_value(decl.value);
@@ -235,16 +304,15 @@ class Compiler {
     }
 
     void visit_function_decl(FuncDeclStmt fdecl) {
-        auto arg_names = fdecl.args.map!("a.ident");
-        auto arg_types_ig = fdecl.args.map!("a.type");
+        auto arg_types = get_arg_types(fdecl.args);
         
-        LLVMTypeRef[] arg_types = [];
-        foreach(type; arg_types_ig) {
-            arg_types ~= get_type(type);
+        auto ret_type = get_type(fdecl.return_type);
+
+        if(type_map["void"] == get_type(fdecl.return_type) && fdecl.ident == "main") {
+            ret_type = get_type(new SymbolType("i32"));
         }
 
-        auto ret_type = get_type(fdecl.return_type);
-        auto func_type = LLVMFunctionType(get_type(fdecl.return_type), arg_types.ptr, cast(uint)arg_types.length, 0);
+        auto func_type = LLVMFunctionType(ret_type, arg_types.ptr, cast(uint)arg_types.length, 0);
         auto func = LLVMAddFunction(_module, fdecl.ident.toStringz(), func_type);
         auto block = LLVMAppendBasicBlockInContext(ctx, func, (fdecl.ident ~ newid() ~ "_ignis_entry").toStringz());
         
@@ -255,8 +323,21 @@ class Compiler {
         current_scope.name = fdecl.ident;
         current_scope.parent = outer_scope;
 
+        foreach(i, arg; fdecl.args) {
+            auto type = get_type(arg.type);
+            auto alloca = LLVMBuildAlloca(builder, type, (arg.ident ~ newid()).toStringz());
+            LLVMBuildStore(builder, LLVMGetParam(func, cast(uint)i), alloca);
+            current_scope.define(arg.ident, alloca, type, false);
+        }
+
         current_scope.define(fdecl.ident, func, ret_type);
         visit_block(fdecl.body);
+
+        if(type_map["void"] == get_type(fdecl.return_type) && fdecl.ident == "main") {
+            LLVMBuildRet(builder, resolve_value(new IntExpr(0)).value);
+        } else if(type_map["void"] == get_type(fdecl.return_type)) {
+            LLVMBuildRetVoid(builder);
+        }
 
         current_scope = outer_scope;
         current_scope.define(fdecl.ident, func, ret_type);
@@ -312,6 +393,10 @@ class Compiler {
             auto type = LLVMPointerType(type_map["i8"], 0);
             auto val = LLVMBuildPointerCast(builder, LLVMBuildGlobalString(builder, str.value.toStringz(), newid().toStringz()), type, "0".toStringz());
             return IGValue(val, type);
+        } else if(auto call = cast(CallExpr)value) {
+            auto r = build_call_expr(call);
+            if(r.resolved) return r;
+            else assert(false, "Attempted to get value from void call");
         }
 
         assert(false, format("Unsupported value: %s", value));

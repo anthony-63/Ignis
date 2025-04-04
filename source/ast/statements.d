@@ -32,11 +32,26 @@ class IfStmt : Stmt {
     this(Expr _cond, Stmt[] _body, Stmt[] __else) { cond = _cond; body = _body; _else = __else; }
 }
 
+class LinkStmt : Stmt {
+    string lib;
+    bool _static;
+
+    this(string _lib, bool __static) { lib = _lib; _static = __static; }
+}
+
 class FieldStmt : Stmt {
     string ident;
     Type type;
 
     this(string _ident, Type _type) { ident = _ident; type = _type; }
+}
+
+class CallArgumentStmt: Stmt {
+    Type type;
+    Expr expression;
+
+    this(Type _type, Expr _expr) { expression = _expr; type = _type; }
+
 }
 
 class ReturnStmt : Stmt {
@@ -67,4 +82,14 @@ class FuncDeclStmt : Stmt {
     Stmt[] body;
 
     this(string _ident, FieldStmt[] _args, Stmt[] _body, Type _ret_type) { ident = _ident; args = _args; body = _body; return_type = _ret_type; }
+}
+
+class ExternStmt : Stmt {
+    string name;
+    string symbol;
+
+    Type return_type;
+    FieldStmt[] args;
+
+    this(string _name, string _symbol, Type _ret, FieldStmt[] _args) { name = _name; symbol = _symbol; return_type = _ret; args = _args; }
 }

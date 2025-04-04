@@ -78,6 +78,11 @@ enum TokenKind {
     MUT,
     IMMUT,
 
+    LINKSTATIC,
+    LINKLIB,
+
+    EXTERN,
+
     NEW,
 }
 
@@ -95,6 +100,9 @@ const TokenKind[string] reserved_keywords = [
     "struct": TokenKind.STRUCT,
     "return": TokenKind.RETURN,
     "new": TokenKind.NEW,
+    "linkstatic": TokenKind.LINKSTATIC,
+    "linklib": TokenKind.LINKLIB,
+    "extern": TokenKind.EXTERN,
 ];
 
 struct Token {
