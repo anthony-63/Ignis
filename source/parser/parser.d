@@ -50,8 +50,7 @@ void setup_lookup_table() {
     nud(TokenKind.IDENT, &parse_primary_expr);
 
     nud(TokenKind.OPEN_BRACKET, &parse_array_expr);
-    nud(TokenKind.OPEN_PAREN, &parse_grouped_expr);
-    
+    nud(TokenKind.OPEN_PAREN, &parse_grouped_expr);    
 
     nud(TokenKind.DASH, &parse_prefix_expr);
 
@@ -61,6 +60,7 @@ void setup_lookup_table() {
     stmt(TokenKind.RETURN, &parse_ret_stmt);
     stmt(TokenKind.LINKSTATIC, &parse_link_static_stmt);
     stmt(TokenKind.LINKLIB, &parse_link_lib_stmt);
+    stmt(TokenKind.INCLUDE, &parse_include_stmt);
 }
 
 void setup_type_lookup_table() {

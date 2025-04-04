@@ -93,3 +93,9 @@ class ExternStmt : Stmt {
 
     this(string _name, string _symbol, Type _ret, FieldStmt[] _args) { name = _name; symbol = _symbol; return_type = _ret; args = _args; }
 }
+
+class IncludeStmt : Stmt {
+    string path;
+
+    this(string _path) { path = _path; }
+}

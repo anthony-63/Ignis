@@ -1,5 +1,6 @@
 import std.stdio;
 import std.file;
+import std.path;
 
 import lexer.lexer;
 import parser.parser;
@@ -9,8 +10,6 @@ import llvm;
 void usage(string filename) {
 	writefln("Usage: %s <input> <output>", filename);
 }
-
-pragma(lib, "/usr/lib/llvm-10/lib/libLLVM-10.so");
 
 void main(string[] args) {
 	auto filename = args[0];
@@ -28,6 +27,9 @@ void main(string[] args) {
 	auto lexer = new Lexer(source);
 	auto tokens = lexer.tokenize();
 	auto ast = Parser.parse(tokens);
-	auto compiler = new Compiler(ast);
-	compiler.compile(args[2]);
+	
+	auto includes = [dirName(args[0]) ~ "/std"];
+	
+	auto compiler = new Compiler(ast, includes);
+	compiler.compile(args[2], dirName(args[2]));
 }

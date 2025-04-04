@@ -1,11 +1,5 @@
-linklib "c"
-
-puts -> extern(str string) i32;
-
-print -> sub(str string) {
-    puts(str);
-}
+include "std/io.ig"
 
 main -> sub() {
-    print("hi");
+    writes("hi");
 }

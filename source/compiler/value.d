@@ -10,6 +10,8 @@ struct IGValue {
 
     bool mutable = true;
 
+    bool _public = true;
+
     bool is_type(LLVMTypeRef _type) {
         return LLVMGetTypeKind(type) == LLVMGetTypeKind(_type);
     }

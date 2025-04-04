@@ -2,6 +2,7 @@ module compiler.compiler;
 
 import std.file;
 import std.conv;
+import std.path;
 import std.string;
 import std.process;
 import std.stdio : writeln;
@@ -12,12 +13,13 @@ import std.typecons;
 import std.variant;
 import std.datetime;
 
-import lexer.tokens;
-
 import ast.ast;
 import ast.types;
 import ast.statements;
 import ast.expressions;
+import lexer.lexer;
+import parser.parser;
+import lexer.tokens;
 
 import llvm;
 import uid;
@@ -30,12 +32,16 @@ struct IGLib {
     bool _static = false;
 }
 
+string[] all_outputs;
+
 class Compiler {
     Stmt[] ast;
 
     LLVMTypeRef[string] type_map;
 
     IGLib[] libs;
+
+    Compiler[] included;
 
     LLVMContextRef ctx;
 
@@ -44,10 +50,12 @@ class Compiler {
 
     IGScope current_scope;
 
-    LLVMValueRef[string] extern_map;
+    string[] include_paths;
 
-    this(BlockStmt root) {
+
+    this(BlockStmt root, string[] includes) {
         ast = root.body;
+        include_paths = includes;
 
         ctx = LLVMContextCreate();
 
@@ -82,24 +90,39 @@ class Compiler {
         }
     }
 
-    void compile(string output) {
+    string output;
+    string cwd;
+
+    void compile(string _output, string _cwd, bool inside=false) {
+        output = _output;
+        cwd = _cwd;
+
         visit_block(ast);
         
         auto ll_file = output ~ ".ll";
-        auto asm_file = output ~ ".s";
+        auto obj_file = output ~ ".o";
 
         LLVMPrintModuleToFile(_module, ll_file.toStringz(), null);
-        auto pid = spawnProcess(["llc", ll_file, "-o", asm_file]);
+        auto pid = spawnProcess(["llc", "--filetype=obj", ll_file, "-o", obj_file]);
         wait(pid);
-        auto args = ["gcc", asm_file, "-o", output, "-no-pie"];
+        auto args = ["gcc", "-o", output, "-no-pie"];
         foreach(lib; libs) {
             auto ls = lib._static ? lib.lib : "-l" ~ lib.lib;
             args ~= ls;
         }
-        pid = spawnProcess(args);
-        wait(pid);
-        // remove(ll_file);
-        remove(asm_file);
+
+        all_outputs ~= _output ~ ".o";
+
+        if(!inside) {
+            args ~= all_outputs;
+            pid = spawnProcess(args);
+            wait(pid);
+
+            foreach(o; all_outputs) {
+                remove(o);
+                remove(setExtension(o, ".ll"));
+            }
+        }
     }
 
     void visit(Stmt stmt) {
@@ -117,6 +140,8 @@ class Compiler {
             add_lib(lib);
         } else if(auto ext = cast(ExternStmt)stmt) {
             visit_extern(ext);
+        } else if(auto inc = cast(IncludeStmt)stmt) {
+            visit_include(inc);
         } else {
             assert(false, format("Unsupported statement %s", stmt));
         }
@@ -140,11 +165,34 @@ class Compiler {
         auto func_type = LLVMFunctionType(ret_type, types.ptr, cast(uint)types.length, 0);
         auto func = LLVMAddFunction(_module, ext.symbol.toStringz(), func_type);
         
-        auto top = current_scope;
-        while(true) {
-            if(top.parent is null) {
-                top.define(ext.name, func, func_type, false);
-                break;
+        current_scope.define(ext.name, func, func_type, false);
+    }
+
+    string get_include_path(string path) {
+        if(exists(path)) return path;
+
+        auto cwdpath = cwd ~ "/" ~ path;
+        if(exists(cwdpath)) return cwdpath;
+
+        foreach(include; include_paths) {
+            auto incpath = include ~ "/" ~ path;
+            if(exists(incpath)) return incpath;
+        }
+        assert(false, format("Failed to include source file %s", path));
+    } 
+
+    void visit_include(IncludeStmt inc) {
+        auto inc_path = get_include_path(inc.path);
+        auto path = dirName(output);
+        auto lexer = new Lexer(readText(inc_path));
+        auto tokens = lexer.tokenize();
+        auto ast = Parser.parse(tokens);
+        auto compiler = new Compiler(ast, include_paths);
+        compiler.compile(path ~ "/" ~ stripExtension(baseName(inc_path)), dirName(inc_path), true);
+        foreach(v, symbol; compiler.current_scope.symbols) {
+            if(LLVMGetTypeKind(LLVMTypeOf(symbol.value)) == LLVMPointerTypeKind && symbol._public) {
+                auto func = LLVMAddFunction(_module, v.toStringz(), symbol.type);
+                current_scope.define(v, func, symbol.type, false, false);
             }
         }
     }
@@ -277,7 +325,7 @@ class Compiler {
         }
         auto args = get_arg_values(call.args);
 
-        if(type_map["void"] == f.type) {
+        if(LLVMGetTypeKind(type_map["void"]) == LLVMGetTypeKind(LLVMGetReturnType(f.type))) {
             LLVMBuildCall(builder, f.value, args.ptr, cast(uint)args.length, "".toStringz());
             return IGValue(null, null, false);
         }
@@ -330,7 +378,7 @@ class Compiler {
             current_scope.define(arg.ident, alloca, type, false);
         }
 
-        current_scope.define(fdecl.ident, func, ret_type);
+        current_scope.define(fdecl.ident, func, func_type);
         visit_block(fdecl.body);
 
         if(type_map["void"] == get_type(fdecl.return_type) && fdecl.ident == "main") {
@@ -340,7 +388,7 @@ class Compiler {
         }
 
         current_scope = outer_scope;
-        current_scope.define(fdecl.ident, func, ret_type);
+        current_scope.define(fdecl.ident, func, func_type);
     }
 
     void visit_ret(ReturnStmt ret) {

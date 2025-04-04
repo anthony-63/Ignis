@@ -48,6 +48,10 @@ Stmt parse_link_lib_stmt(Parser parser) {
     return new LinkStmt(parser.expect(TokenKind.STRING).value, false);
 }
 
+Stmt parse_include_stmt(Parser parser) {
+    parser.advance();
+    return new IncludeStmt(parser.expect(TokenKind.STRING).value);
+}
 Stmt parse_var_decl_stmt(Parser parser) {
     auto mutable = parser.advance().kind == TokenKind.MUT;
 
