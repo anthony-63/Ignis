@@ -283,6 +283,8 @@ class Compiler {
             case TokenKind.LESS_EQUALS: return (floating ? LLVMBuildFCmp(builder, LLVMRealULE, lhs, rhs, name) : LLVMBuildICmp(builder, LLVMIntULE, lhs, rhs, name));
             case TokenKind.EQUALS: return (floating ? LLVMBuildFCmp(builder, LLVMRealUEQ, lhs, rhs, name) : LLVMBuildICmp(builder, LLVMIntEQ, lhs, rhs, name));
             case TokenKind.NOT_EQUALS: return (floating ? LLVMBuildFCmp(builder, LLVMRealUNE, lhs, rhs, name) : LLVMBuildICmp(builder, LLVMIntNE, lhs, rhs, name));
+            case TokenKind.OR: return LLVMBuildOr(builder, lhs, rhs, name);
+            case TokenKind.AND: return LLVMBuildAnd(builder, lhs, rhs, name);
             default: assert(false, format("Invalid operation %s", op));
         }
     }
