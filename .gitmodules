@@ -1,3 +1,0 @@
-[submodule "llvm-d"]
-	path = llvm-d
-	url = https://github.com/anthony-63/llvm-d
