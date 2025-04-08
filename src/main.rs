@@ -1,9 +1,8 @@
 mod lexer;
+mod parser;
 
 use std::env::args;
 
-use getargs::{Opt, Options};
-use lexer::Token;
 use logos::Logos;
 
 fn main() {
@@ -34,5 +33,5 @@ fn main() {
         }
     }
 
-        
+    println!("{:?}", tokens);
 }
