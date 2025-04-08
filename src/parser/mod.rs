@@ -24,16 +24,16 @@ impl Parser {
         let mut lu = PrattLookups::new();
         let mut tlu = PrattLookups::new();
 
-        // lu.led(Token::And, BindingPower::Logical, parse_binary_expression);
-        // lu.led(Token::Or, BindingPower::Logical, parse_binary_expression);
-        // lu.led(Token::Range, BindingPower::Logical, parse_binary_expression);
+        lu.led(Token::And, BindingPower::Logical, parse_binary_expression);
+        lu.led(Token::Or, BindingPower::Logical, parse_binary_expression);
+        lu.led(Token::Range, BindingPower::Logical, parse_binary_expression);
 
-        // lu.led(Token::Less, BindingPower::Relational, parse_binary_expression);
-        // lu.led(Token::LessOrEqual, BindingPower::Relational, parse_binary_expression);
-        // lu.led(Token::Greater, BindingPower::Relational, parse_binary_expression);
-        // lu.led(Token::GreaterOrEqual, BindingPower::Relational, parse_binary_expression);
-        // lu.led(Token::Equals, BindingPower::Relational, parse_binary_expression);
-        // lu.led(Token::NotEquals, BindingPower::Relational, parse_binary_expression);
+        lu.led(Token::Less, BindingPower::Relational, parse_binary_expression);
+        lu.led(Token::LessOrEqual, BindingPower::Relational, parse_binary_expression);
+        lu.led(Token::Greater, BindingPower::Relational, parse_binary_expression);
+        lu.led(Token::GreaterOrEqual, BindingPower::Relational, parse_binary_expression);
+        lu.led(Token::Equals, BindingPower::Relational, parse_binary_expression);
+        lu.led(Token::NotEquals, BindingPower::Relational, parse_binary_expression);
 
         lu.led(Token::Plus, BindingPower::Additive, parse_binary_expression);
         lu.led(Token::Minus, BindingPower::Additive, parse_binary_expression);
@@ -65,7 +65,7 @@ impl Parser {
 
         lu.nud(Token::Minus, parse_prefix_expression);
 
-        // lu.stmt(Token::If, parse_struct_create_expression);
+        lu.stmt(Token::If, parse_if);
         lu.stmt(Token::Mut, parse_var_decl);
         lu.stmt(Token::Immut, parse_var_decl);
         lu.stmt(Token::Return, parse_return);

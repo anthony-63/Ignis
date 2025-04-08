@@ -20,6 +20,40 @@ pub fn parse_stmt(parser: &mut Parser) -> Stmt {
     Stmt::Expression(Box::new(expr))
 }
 
+pub fn parse_if(parser: &mut Parser) -> Stmt {
+    parser.advance();
+
+    let condition = parse_expression(parser, BindingPower::Default);
+    let mut body = vec![];
+    let mut _else = None;
+
+    parser.expect(Token::OpenCurly);
+    while parser.has_tokens() && !parser.is_current_kind(Token::CloseCurly) {
+        body.push(parse_stmt(parser));
+    }
+
+    parser.expect(Token::CloseCurly);
+
+    if parser.is_current_kind(Token::Else) {
+        parser.advance();
+        if parser.is_current_kind(Token::If) {
+            _else = Some(Box::new(parse_if(parser)));
+        } else {
+            let mut _else_body = vec![];
+            parser.expect(Token::OpenCurly);
+            while parser.has_tokens() && !parser.is_current_kind(Token::CloseCurly) {
+                _else_body.push(parse_stmt(parser));
+            }
+        
+            parser.expect(Token::CloseCurly);
+
+            _else = Some(Box::new(Stmt::Block(_else_body)));
+        }
+    }
+
+    Stmt::If { condition: Box::new(condition), body: Box::new(Stmt::Block(body)), _else }
+}
+
 pub fn parse_function_declaration(parser: &mut Parser, name: String) -> Stmt {
     parser.expect(Token::OpenParen);
 

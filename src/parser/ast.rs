@@ -61,7 +61,7 @@ pub enum Stmt {
     If {
         condition: Box<Expr>,
         body: Box<Stmt>,
-        _else: Box<Stmt>,
+        _else: Option<Box<Stmt>>,
     },
 
     Link {
