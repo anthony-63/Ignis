@@ -135,6 +135,45 @@ pub fn parse_var_decl(parser: &mut Parser) -> Stmt {
     Stmt::VariableDeclaration { name: name.into(), mutable, explicit_type: explicit_type, value: Box::new(val) }
 }
 
+pub fn parse_extern(parser: &mut Parser, name: String) -> Stmt {
+    let mut symbol = name.clone();
+    
+    if parser.is_current_kind(Token::OpenBracket) {
+        parser.advance();
+        let Token::Identifier(s) = parser.advance() else {
+            panic!("Expected identifier, example: [SYMBOL]");
+        };
+        symbol = s.into();
+    }
+
+    parser.expect(Token::OpenParen);
+
+    let mut arguments = vec![];
+
+    while parser.has_tokens() && !parser.is_current_kind(Token::CloseParen) {
+        match parser.advance() {
+            Token::Identifier(name) => arguments.push(Stmt::Field { name: name.into(), _type: Box::new(parse_type(parser, BindingPower::Default)) }),
+            _ => panic!("Expected identifier in fields for extern function {}", name),
+        }
+
+        if !parser.is_current_kind(Token::CloseParen) {
+            parser.expect(Token::Comma);
+        }
+    }
+
+    parser.expect(Token::CloseParen);
+
+    let return_type = if parser.is_current_kind(Token::Identifier(String::new())) {
+        parse_type(parser, BindingPower::Default)
+    } else {
+        Type::Symbol("void".into())
+    };
+
+    parser.expect(Token::Semicolon);
+
+    Stmt::Extern { name, symbol, return_type: Box::new(return_type), arguments }
+}
+
 pub fn parse_link_lib(parser: &mut Parser) -> Stmt {
     parser.advance();
     let Token::String(libname) = parser.advance() else {
