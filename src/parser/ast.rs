@@ -1,7 +1,7 @@
 use crate::lexer::Token;
 
 
-
+#[derive(Debug)]
 pub enum Expr {
     Int(isize),
 
@@ -39,8 +39,11 @@ pub enum Expr {
 
         fields: Vec<Stmt>,
     },
+
+    StmtHack(Stmt),
 }
 
+#[derive(Debug)]
 pub enum Stmt {
     Block(Vec<Stmt>),
 
@@ -107,6 +110,7 @@ pub enum Stmt {
     },
 }
 
+#[derive(Debug)]
 pub enum Type {
     Symbol(String),
 

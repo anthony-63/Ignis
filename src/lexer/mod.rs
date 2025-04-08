@@ -1,7 +1,7 @@
 use logos::Logos;
 
 
-#[derive(Debug, Logos)]
+#[derive(Debug, Logos, PartialEq, Clone)]
 #[logos(skip r"[ \t\n]+")]
 #[logos(skip r"\/\/.*")]
 #[logos(error = String)]
