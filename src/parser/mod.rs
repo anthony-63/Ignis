@@ -74,8 +74,8 @@ impl Parser {
         lu.stmt(Token::Include, parse_include);
 
         tlu.nud(Token::Identifier(String::new()), parse_symbol_type);
-        // tlu.nud(Token::OpenBracket, );
-        // tlu.nud(Token::Reference, parse_symbol_type);
+        tlu.nud(Token::OpenBracket, parse_array_type);
+        tlu.nud(Token::Reference, parse_ref_type);
         
         Self {
             lookup: lu,

@@ -25,3 +25,16 @@ pub fn parse_symbol_type(parser: &mut Parser) -> Type {
 
     Type::Symbol(ident.into())
 }
+
+pub fn parse_array_type(parser: &mut Parser) -> Type {
+    parser.advance();
+    parser.expect(Token::CloseBracket);
+
+    Type::Array(Box::new(parse_type(parser, BindingPower::Default)))
+}
+
+
+pub fn parse_ref_type(parser: &mut Parser) -> Type {
+    parser.advance();
+    Type::Ref(Box::new(parse_type(parser, BindingPower::Default)))
+}
