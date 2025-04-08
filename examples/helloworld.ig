@@ -1,13 +1,5 @@
 include "std/io.ig"
 
-test -> struct {
-    hello i32,
-
-    test -> sub(&this) {
-
-    }
-}
-
-main -> sub(args []string) {
-    mut a = 10;
+main -> sub() i32 {
+    return 1;
 }

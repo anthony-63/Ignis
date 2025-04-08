@@ -111,7 +111,7 @@ pub fn parse_struct_declaration(parser: &mut Parser, name: String) -> Stmt {
     Stmt::StructDeclaration { name, fields, functions }
 }
 
-pub fn parse_var_decl_stmt(parser: &mut Parser) -> Stmt {
+pub fn parse_var_decl(parser: &mut Parser) -> Stmt {
     let mutable = parser.is_current_kind(Token::Mut);
     parser.advance();
 
@@ -133,6 +133,33 @@ pub fn parse_var_decl_stmt(parser: &mut Parser) -> Stmt {
     parser.expect(Token::Semicolon);
 
     Stmt::VariableDeclaration { name: name.into(), mutable, explicit_type: explicit_type, value: Box::new(val) }
+}
+
+pub fn parse_link_lib(parser: &mut Parser) -> Stmt {
+    parser.advance();
+    let Token::String(libname) = parser.advance() else {
+        panic!("Expected string for linklib argbument")
+    };
+
+    Stmt::Link { library: libname.into(), _static: false }
+}
+
+pub fn parse_link_static(parser: &mut Parser) -> Stmt {
+    parser.advance();
+    let Token::String(libname) = parser.advance() else {
+        panic!("Expected string for linkstatic argbument")
+    };
+
+    Stmt::Link { library: libname.into(), _static: true }
+}
+
+pub fn parse_return(parser: &mut Parser) -> Stmt {
+    parser.advance();
+
+    let val = parse_expression(parser, BindingPower::Default);
+    parser.expect(Token::Semicolon);
+
+    Stmt::Return { value: Box::new(val) }
 }
 
 pub fn parse_include(parser: &mut Parser) -> Stmt {

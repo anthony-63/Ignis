@@ -66,11 +66,11 @@ impl Parser {
         // lu.nud(Token::Minus, parse_struct_create_expression);
 
         // lu.stmt(Token::If, parse_struct_create_expression);
-        lu.stmt(Token::Mut, parse_var_decl_stmt);
-        lu.stmt(Token::Immut, parse_var_decl_stmt);
-        // lu.stmt(Token::Return, parse_struct_create_expression);
-        // lu.stmt(Token::LinkStatic, parse_struct_create_expression);
-        // lu.stmt(Token::LinkLib, parse_struct_create_expression);
+        lu.stmt(Token::Mut, parse_var_decl);
+        lu.stmt(Token::Immut, parse_var_decl);
+        lu.stmt(Token::Return, parse_return);
+        lu.stmt(Token::LinkStatic, parse_link_static);
+        lu.stmt(Token::LinkLib, parse_link_lib);
         lu.stmt(Token::Include, parse_include);
 
         tlu.nud(Token::Identifier(String::new()), parse_symbol_type);
