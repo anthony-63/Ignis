@@ -61,7 +61,7 @@ impl Parser {
         lu.nud(Token::Identifier(String::new()), parse_primary_expression);
 
         // lu.nud(Token::OpenBracket, parse_struct_create_expression);
-        // lu.nud(Token::OpenParen, parse_struct_create_expression);
+        lu.nud(Token::OpenParen, parse_grouped_expression);
 
         // lu.nud(Token::Minus, parse_struct_create_expression);
 

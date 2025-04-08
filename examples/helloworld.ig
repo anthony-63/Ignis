@@ -1,5 +1,5 @@
 include "std/io.ig"
 
 main -> sub() i32 {
-    return 1;
+    return 0;
 }

@@ -63,6 +63,15 @@ pub fn parse_arrow_expression(parser: &mut Parser, left: Expr, bp: BindingPower)
     }
 }
 
+pub fn parse_grouped_expression(parser: &mut Parser) -> Expr {
+    parser.advance();
+
+    let expr = parse_expression(parser, BindingPower::Default);
+    parser.expect(Token::CloseParen);
+
+    expr
+}
+
 pub fn parse_struct_create_expression(parser: &mut Parser) -> Expr {
     Expr::Int(0)
 }
