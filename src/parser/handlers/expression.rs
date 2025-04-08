@@ -72,6 +72,15 @@ pub fn parse_grouped_expression(parser: &mut Parser) -> Expr {
     expr
 }
 
+pub fn parse_prefix_expression(parser: &mut Parser) -> Expr {
+    let op = parser.advance().clone();
+
+    let nud_fn = parser.get_nud(parser.current()).expect(&format!("NUD FUNCTION DOESNT EXIST FOR TOKEN {:?}", parser.current()));
+    let right = nud_fn(parser);
+
+    Expr::Prefix { op, right: Box::new(right) }
+}
+
 pub fn parse_struct_create_expression(parser: &mut Parser) -> Expr {
     Expr::Int(0)
 }

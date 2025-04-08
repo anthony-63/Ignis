@@ -63,7 +63,7 @@ impl Parser {
         // lu.nud(Token::OpenBracket, parse_struct_create_expression);
         lu.nud(Token::OpenParen, parse_grouped_expression);
 
-        // lu.nud(Token::Minus, parse_struct_create_expression);
+        lu.nud(Token::Minus, parse_prefix_expression);
 
         // lu.stmt(Token::If, parse_struct_create_expression);
         lu.stmt(Token::Mut, parse_var_decl);
