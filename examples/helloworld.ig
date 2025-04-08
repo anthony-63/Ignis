@@ -1,5 +1,5 @@
 include "std/io.ig"
 
-main -> sub() {
-    writes("welcome to ignis!");
+main -> sub(args []string) {
+    
 }

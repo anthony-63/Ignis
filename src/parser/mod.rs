@@ -1,7 +1,7 @@
 use std::mem;
 
 use ast::{Expr, Stmt, Type};
-use handlers::{expression::*, statement::parse_stmt, types::*};
+use handlers::{expression::*, statement::*, types::*};
 use pratt::{BindingPower, LedHandler, NudHandler, PrattLookups, StmtHandler};
 
 use crate::lexer::Token;
@@ -24,34 +24,34 @@ impl Parser {
         let mut lu = PrattLookups::new();
         let mut tlu = PrattLookups::new();
 
-        lu.led(Token::And, BindingPower::Logical, parse_binary_expression);
-        lu.led(Token::Or, BindingPower::Logical, parse_binary_expression);
-        lu.led(Token::Range, BindingPower::Logical, parse_binary_expression);
+        // lu.led(Token::And, BindingPower::Logical, parse_binary_expression);
+        // lu.led(Token::Or, BindingPower::Logical, parse_binary_expression);
+        // lu.led(Token::Range, BindingPower::Logical, parse_binary_expression);
 
-        lu.led(Token::Less, BindingPower::Relational, parse_binary_expression);
-        lu.led(Token::LessOrEqual, BindingPower::Relational, parse_binary_expression);
-        lu.led(Token::Greater, BindingPower::Relational, parse_binary_expression);
-        lu.led(Token::GreaterOrEqual, BindingPower::Relational, parse_binary_expression);
-        lu.led(Token::Equals, BindingPower::Relational, parse_binary_expression);
-        lu.led(Token::NotEquals, BindingPower::Relational, parse_binary_expression);
+        // lu.led(Token::Less, BindingPower::Relational, parse_binary_expression);
+        // lu.led(Token::LessOrEqual, BindingPower::Relational, parse_binary_expression);
+        // lu.led(Token::Greater, BindingPower::Relational, parse_binary_expression);
+        // lu.led(Token::GreaterOrEqual, BindingPower::Relational, parse_binary_expression);
+        // lu.led(Token::Equals, BindingPower::Relational, parse_binary_expression);
+        // lu.led(Token::NotEquals, BindingPower::Relational, parse_binary_expression);
 
         lu.led(Token::Plus, BindingPower::Additive, parse_binary_expression);
         lu.led(Token::Minus, BindingPower::Additive, parse_binary_expression);
 
-        lu.led(Token::Assignment, BindingPower::Assignment, parse_binary_expression);
+        // lu.led(Token::Assignment, BindingPower::Assignment, parse_binary_expression);
 
         lu.led(Token::Multiply, BindingPower::Multiplicative, parse_binary_expression);
         lu.led(Token::Divide, BindingPower::Multiplicative, parse_binary_expression);
         lu.led(Token::Power, BindingPower::Multiplicative, parse_binary_expression);
         lu.led(Token::Mod, BindingPower::Multiplicative, parse_binary_expression);
         
-        lu.led(Token::Arrow, BindingPower::Primary, parse_binary_expression);
+        lu.led(Token::Arrow, BindingPower::Primary, parse_arrow_expression);
 
-        lu.led(Token::Dot, BindingPower::Member, parse_binary_expression);
-        lu.led(Token::OpenParen, BindingPower::Call, parse_binary_expression);
+        // lu.led(Token::Dot, BindingPower::Member, parse_binary_expression);
+        // lu.led(Token::OpenParen, BindingPower::Call, parse_binary_expression);
 
-        lu.led(Token::PlusEquals, BindingPower::Call, parse_binary_expression);
-        lu.led(Token::MinusEquals, BindingPower::Call, parse_binary_expression);
+        // lu.led(Token::PlusEquals, BindingPower::Call, parse_binary_expression);
+        // lu.led(Token::MinusEquals, BindingPower::Call, parse_binary_expression);
 
         lu.nud(Token::New, parse_struct_create_expression);
 
@@ -60,22 +60,22 @@ impl Parser {
         lu.nud(Token::String(String::new()), parse_primary_expression);
         lu.nud(Token::Identifier(String::new()), parse_primary_expression);
 
-        lu.nud(Token::OpenBracket, parse_struct_create_expression);
-        lu.nud(Token::OpenParen, parse_struct_create_expression);
+        // lu.nud(Token::OpenBracket, parse_struct_create_expression);
+        // lu.nud(Token::OpenParen, parse_struct_create_expression);
 
-        lu.nud(Token::Minus, parse_struct_create_expression);
+        // lu.nud(Token::Minus, parse_struct_create_expression);
 
-        lu.nud(Token::If, parse_struct_create_expression);
-        lu.nud(Token::Mut, parse_struct_create_expression);
-        lu.nud(Token::Immut, parse_struct_create_expression);
-        lu.nud(Token::Return, parse_struct_create_expression);
-        lu.nud(Token::LinkStatic, parse_struct_create_expression);
-        lu.nud(Token::LinkLib, parse_struct_create_expression);
-        lu.nud(Token::Include, parse_struct_create_expression);
+        // lu.stmt(Token::If, parse_struct_create_expression);
+        // lu.stmt(Token::Mut, parse_struct_create_expression);
+        // lu.stmt(Token::Immut, parse_struct_create_expression);
+        // lu.stmt(Token::Return, parse_struct_create_expression);
+        // lu.stmt(Token::LinkStatic, parse_struct_create_expression);
+        // lu.stmt(Token::LinkLib, parse_struct_create_expression);
+        lu.stmt(Token::Include, parse_include);
 
         tlu.nud(Token::Identifier(String::new()), parse_symbol_type);
-        tlu.nud(Token::OpenBracket, parse_symbol_type);
-        tlu.nud(Token::Reference, parse_symbol_type);
+        // tlu.nud(Token::OpenBracket, );
+        // tlu.nud(Token::Reference, parse_symbol_type);
         
         Self {
             lookup: lu,
@@ -101,10 +101,6 @@ impl Parser {
         &self.tokens[self.position]
     }
 
-    pub fn peek(&self) -> &Token {
-        &self.tokens[self.position+1]
-    }
-
     pub fn advance(&mut self) -> &Token {
         let tok = &self.tokens[self.position];
         self.position += 1;
@@ -112,7 +108,7 @@ impl Parser {
     }
 
     pub fn has_tokens(&self) -> bool {
-        self.position < self.tokens.len()
+        self.position < self.tokens.len() && !self.is_current_kind(Token::EOF)
     }
 
     pub fn get_stmt(&self, token: &Token) -> Option<&StmtHandler<Stmt>> {
@@ -123,8 +119,16 @@ impl Parser {
         self.lookup.get_nud(token)
     }
 
+    pub fn get_type_nud(&self, token: &Token) -> Option<&NudHandler<Type>> {
+        self.type_lookup.get_nud(token)
+    }
+
     pub fn get_led(&self, token: &Token) -> Option<&LedHandler<Expr>> {
         self.lookup.get_led(token)
+    }
+
+    pub fn get_type_led(&self, token: &Token) -> Option<&LedHandler<Type>> {
+        self.type_lookup.get_led(token)
     }
 
     pub fn get_bp(&self, token: &Token) -> Option<&BindingPower> {
@@ -143,7 +147,11 @@ impl Parser {
     }
 
     pub fn is_current_kind(&self, token: Token) -> bool {
-        let tok = self.current();
-        mem::discriminant(&token) == mem::discriminant(tok)
+        let tok = self.current().clone();
+        is_kind(token, tok)
     }
+}
+
+pub fn is_kind<T>(lhs: T, rhs: T) -> bool {
+    mem::discriminant(&lhs) == mem::discriminant(&rhs)
 }

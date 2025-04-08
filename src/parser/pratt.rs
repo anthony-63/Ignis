@@ -20,7 +20,7 @@ pub enum BindingPower {
 
 pub type StmtHandler<S> = fn(parser: &mut Parser) -> S;
 pub type NudHandler<E> = fn(parser: &mut Parser) -> E;
-pub type LedHandler<E> = fn(parser: &mut Parser, left: Expr, bp: BindingPower) -> E;
+pub type LedHandler<E> = fn(parser: &mut Parser, left: E, bp: BindingPower) -> E;
 
 type StmtLookup<S> = LookupTable<StmtHandler<S>>;
 type NudLookup<E> = LookupTable<NudHandler<E>>;

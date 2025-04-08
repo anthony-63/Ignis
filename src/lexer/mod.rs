@@ -12,7 +12,7 @@ pub enum Token {
     #[regex(r"[0-9]+(\.[0-9]+)", |lex| lex.slice().parse::<f64>().unwrap(), priority=2)]
     Decimel(f64),
 
-    #[regex(r#""([^"\\\x00-\x1F]|\\(["\\bnfrt/]|u[a-fA-F0-9]{4}))*""#, |lex| lex.slice().to_owned())]
+    #[regex(r#""([^"\\\x00-\x1F]|\\(["\\bnfrt/]|u[a-fA-F0-9]{4}))*""#, |lex| let s = lex.slice().to_owned(); s[1..s.len()-1].to_string() )]
     String(String),
 
     #[regex(r"[a-zA-Z_][a-zA-Z0-9_]*", |lex| lex.slice().to_owned())]
@@ -98,7 +98,7 @@ pub enum Token {
     
     #[token("->")]
     Arrow,
-    #[token("ref")]
+    #[token("&")]
     Reference,
 
     #[token("include")]
@@ -138,4 +138,6 @@ pub enum Token {
 
     #[token("extern")]
     Extern,
+
+    EOF,
 }

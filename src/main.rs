@@ -3,6 +3,7 @@ mod parser;
 
 use std::env::args;
 
+use lexer::Token;
 use logos::Logos;
 use parser::Parser;
 
@@ -33,6 +34,8 @@ fn main() {
             },
         }
     }
+
+    tokens.push(Token::EOF);
 
     println!("{:?}", tokens);
 
