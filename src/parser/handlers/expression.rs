@@ -49,9 +49,15 @@ pub fn parse_arrow_expression(parser: &mut Parser, left: Expr, bp: BindingPower)
 
     parser.expect(Token::Arrow);
 
-    match parser.advance() {
-        Token::Subroutine => Expr::StmtHack(parse_function_declaration(parser, symbol)),
-        // Token::Struct => Expr::StmtHack(parse_struct_declaration(parser, symbol)),
+    match parser.current() {
+        Token::Subroutine => {
+            parser.advance();
+            Expr::StmtHack(parse_function_declaration(parser, symbol))
+        }
+        Token::Struct => {
+            parser.advance();
+            Expr::StmtHack(parse_struct_declaration(parser, symbol))
+        }
         // Token::Extern => Expr::StmtHack(parse_extern_statement(parser, symbol)),
         _ => panic!("Expected high level declaration with arrow but got {:?}", parser.current()),
     }

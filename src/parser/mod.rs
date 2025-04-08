@@ -66,8 +66,8 @@ impl Parser {
         // lu.nud(Token::Minus, parse_struct_create_expression);
 
         // lu.stmt(Token::If, parse_struct_create_expression);
-        // lu.stmt(Token::Mut, parse_struct_create_expression);
-        // lu.stmt(Token::Immut, parse_struct_create_expression);
+        lu.stmt(Token::Mut, parse_var_decl_stmt);
+        lu.stmt(Token::Immut, parse_var_decl_stmt);
         // lu.stmt(Token::Return, parse_struct_create_expression);
         // lu.stmt(Token::LinkStatic, parse_struct_create_expression);
         // lu.stmt(Token::LinkLib, parse_struct_create_expression);
@@ -101,13 +101,17 @@ impl Parser {
         &self.tokens[self.position]
     }
 
+    pub fn last(&self) -> &Token {
+        &self.tokens[self.position-1]
+    }
+
     pub fn advance(&mut self) -> &Token {
         let tok = &self.tokens[self.position];
         self.position += 1;
         tok
     }
 
-    pub fn has_tokens(&self) -> bool {
+    pub fn has_tokens(&mut self) -> bool {
         self.position < self.tokens.len() && !self.is_current_kind(Token::EOF)
     }
 

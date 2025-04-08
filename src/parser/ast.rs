@@ -80,8 +80,8 @@ pub enum Stmt {
 
     StructDeclaration {
         name: String,
-        fields: Box<Stmt>,
-        functions: Box<Stmt>,
+        fields: Vec<Stmt>,
+        functions: Vec<Stmt>,
     },
 
     StructInitField {

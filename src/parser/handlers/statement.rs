@@ -1,3 +1,5 @@
+use std::env::var;
+
 use crate::{lexer::Token, parser::{ast::{Expr, Stmt, Type}, pratt::BindingPower, Parser}};
 
 use super::{expression::*, types::*};
@@ -20,7 +22,6 @@ pub fn parse_stmt(parser: &mut Parser) -> Stmt {
 
 pub fn parse_function_declaration(parser: &mut Parser, name: String) -> Stmt {
     parser.expect(Token::OpenParen);
-    
 
     let mut arguments = vec![];
 
@@ -75,6 +76,63 @@ pub fn parse_function_declaration(parser: &mut Parser, name: String) -> Stmt {
         arguments,
         body: Box::new(Stmt::Block(body))
     }
+}
+
+pub fn parse_struct_declaration(parser: &mut Parser, name: String) -> Stmt {
+    parser.expect(Token::OpenCurly);
+
+    let mut fields = vec![];
+    let mut functions = vec![];
+
+    while parser.has_tokens() && !parser.is_current_kind(Token::CloseCurly) {
+        let Token::Identifier(field_name) = parser.advance() else {
+            panic!("Expected identifier for struct field name");
+        };
+        let name = field_name.clone();
+
+        if parser.is_current_kind(Token::Arrow) {
+            parser.advance();
+            parser.expect(Token::Subroutine);
+
+            functions.push(parse_function_declaration(parser, name));
+            continue;
+        }
+        
+        let _type = parse_type(parser, BindingPower::Default);
+
+        fields.push(Stmt::Field { name: name, _type: Box::new(_type) });
+        if !parser.is_current_kind(Token::CloseCurly) {
+            parser.expect(Token::Comma);
+        }
+    }
+
+    parser.advance();
+
+    Stmt::StructDeclaration { name, fields, functions }
+}
+
+pub fn parse_var_decl_stmt(parser: &mut Parser) -> Stmt {
+    let mutable = parser.is_current_kind(Token::Mut);
+    parser.advance();
+
+    let Token::Identifier(var_name) = parser.advance() else {
+        panic!("Expected identifier for variable name, got {:?}", parser.last())
+    };
+
+    let name = var_name.clone();
+
+    let mut explicit_type = None;
+    if parser.is_current_kind(Token::Colon) {
+        parser.advance();
+        explicit_type = Some(Box::new(parse_type(parser, BindingPower::Default)));
+    }
+
+    parser.expect(Token::Assignment);
+    let val = parse_expression(parser, BindingPower::Default);
+
+    parser.expect(Token::Semicolon);
+
+    Stmt::VariableDeclaration { name: name.into(), mutable, explicit_type: explicit_type, value: Box::new(val) }
 }
 
 pub fn parse_include(parser: &mut Parser) -> Stmt {
