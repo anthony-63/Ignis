@@ -68,8 +68,6 @@ pub fn parse_function_declaration(parser: &mut Parser, name: String) -> Stmt {
 
     parser.expect(Token::CloseCurly);
 
-    println!("function declaration\nname: {}\nreturn type: {:?}\narguments: {:?}\nbody: {:?}", name, return_type, arguments, body);
-
     Stmt::FunctionDeclaration {
         name,
         return_type: Box::new(return_type),

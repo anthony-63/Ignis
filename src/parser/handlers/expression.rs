@@ -42,7 +42,7 @@ pub fn parse_primary_expression(parser: &mut Parser) -> Expr {
     v
 }
 
-pub fn parse_arrow_expression(parser: &mut Parser, left: Expr, bp: BindingPower) -> Expr {
+pub fn parse_arrow_expression(parser: &mut Parser, left: Expr, _bp: BindingPower) -> Expr {
     let Expr::Symbol(symbol) = left else {
         panic!("LHS of arrow MUST be an identifer, got {:?}", left);
     }; 
@@ -82,6 +82,26 @@ pub fn parse_prefix_expression(parser: &mut Parser) -> Expr {
     let right = nud_fn(parser);
 
     Expr::Prefix { op, right: Box::new(right) }
+}
+
+pub fn parse_call_expression(parser: &mut Parser, left: Expr, bp: BindingPower) -> Expr {
+    let Expr::Symbol(callee) = left else {
+        panic!("Expected symbol on the left of a function call");
+    }; 
+    parser.advance();
+
+    let mut arguments = vec![];
+
+    while parser.has_tokens() && !parser.is_current_kind(Token::CloseParen) {
+        arguments.push(parse_expression(parser, BindingPower::Default));
+
+        if !parser.is_current_kind(Token::CloseParen) {
+            parser.expect(Token::Comma);
+        }
+    }
+    parser.expect(Token::CloseParen);
+
+    Expr::Call { name: callee, args: arguments }
 }
 
 pub fn parse_struct_create_expression(parser: &mut Parser) -> Expr {

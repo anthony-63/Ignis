@@ -48,7 +48,7 @@ impl Parser {
         lu.led(Token::Arrow, BindingPower::Primary, parse_arrow_expression);
 
         // lu.led(Token::Dot, BindingPower::Member, parse_binary_expression);
-        // lu.led(Token::OpenParen, BindingPower::Call, parse_binary_expression);
+        lu.led(Token::OpenParen, BindingPower::Call, parse_call_expression);
 
         // lu.led(Token::PlusEquals, BindingPower::Call, parse_binary_expression);
         // lu.led(Token::MinusEquals, BindingPower::Call, parse_binary_expression);
