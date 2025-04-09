@@ -6,12 +6,15 @@ pub mod namegen;
 
 use std::{alloc::{self, Layout}, collections::HashMap, ffi::CString, path::Path};
 
-use llvm_sys_180::{core::{LLVMAddFunction, LLVMAppendBasicBlock, LLVMAppendBasicBlockInContext, LLVMBuildAlloca, LLVMBuildRet, LLVMBuildRetVoid, LLVMBuildStore, LLVMConstInt, LLVMContextCreate, LLVMCreateBuilderInContext, LLVMDoubleTypeInContext, LLVMFloatTypeInContext, LLVMFunctionType, LLVMGetParam, LLVMHalfTypeInContext, LLVMIntTypeInContext, LLVMModuleCreateWithNameInContext, LLVMPointerType, LLVMPositionBuilderAtEnd, LLVMPrintModuleToFile, LLVMVoidTypeInContext}, prelude::{LLVMBuilderRef, LLVMContextRef, LLVMModuleRef, LLVMTypeRef}, LLVMContext};
-use namegen::{gen_id_pre, gen_id_prepost};
+use llvm_sys_180::{core::{LLVMAddFunction, LLVMAppendBasicBlock, LLVMAppendBasicBlockInContext, LLVMBuildAlloca, LLVMBuildAnd, LLVMBuildFAdd, LLVMBuildFCmp, LLVMBuildFDiv, LLVMBuildFMul, LLVMBuildFSub, LLVMBuildGlobalString, LLVMBuildICmp, LLVMBuildLoad2, LLVMBuildOr, LLVMBuildPointerCast, LLVMBuildRet, LLVMBuildRetVoid, LLVMBuildSDiv, LLVMBuildStore, LLVMConstInt, LLVMConstReal, LLVMContextCreate, LLVMCreateBuilderInContext, LLVMDoubleTypeInContext, LLVMFloatTypeInContext, LLVMFunctionType, LLVMGetParam, LLVMHalfTypeInContext, LLVMIntTypeInContext, LLVMModuleCreateWithNameInContext, LLVMPointerType, LLVMPositionBuilderAtEnd, LLVMPrintModuleToFile, LLVMVoidTypeInContext}, prelude::{LLVMBuilderRef, LLVMContextRef, LLVMModuleRef, LLVMTypeRef, LLVMValueRef}, LLVMContext};
+use namegen::{gen_id, gen_id_pre, gen_id_prepost};
 use scope::IGScope;
 use value::IGValue;
 
-use crate::parser::ast::{Expr, Stmt, Type};
+use llvm_sys_180::LLVMRealPredicate as FPredicate;
+use llvm_sys_180::LLVMIntPredicate as IPredicate;
+
+use crate::{lexer::Token, parser::{ast::{Expr, Stmt, Type}, is_kind}};
 
 type TypeMap = HashMap<String, LLVMTypeRef>;
 
@@ -110,6 +113,25 @@ impl Compiler {
             self.visit_function_declaration(stmt.clone());
         } if let Stmt::Return { .. } = stmt {
             self.visit_return(stmt.clone());
+        } if let Stmt::VariableDeclaration { .. } = stmt {
+            self.visit_variable_declaration(stmt.clone(), true);
+        }
+    }
+
+    unsafe fn visit_variable_declaration(&mut self, stmt: Stmt, define: bool) {
+        let Stmt::VariableDeclaration { name, mutable, explicit_type, value } = stmt else {
+            panic!("Expected variable declaration");
+        };
+
+        if !self.current_scope.resolve(name.clone()).is_some() {
+            let val = self.resolve_value(*value);
+            let alloca = LLVMBuildAlloca(self.builder, val._type, gen_id_pre(name.clone()));
+            LLVMBuildStore(self.builder, val.value, alloca);
+            if define {
+                self.current_scope.define(name, val.value, val._type, mutable, true);
+            }
+        } else {
+            panic!("Cannot redefine variable {:?}", name);
         }
     }
 
@@ -179,13 +201,96 @@ impl Compiler {
         LLVMBuildRet(self.builder, self.resolve_value(*value).value);
     } 
 
+    
+    unsafe fn visit_op(&mut self, left: IGValue, right: IGValue, op: Token, floating: bool) -> LLVMValueRef {
+        let name = gen_id_pre("op".into());
+        let lhs = left.value;
+        let rhs = right.value;
+
+        match op {
+            Token::Plus => if floating { LLVMBuildFAdd(self.builder, lhs, rhs, name) } else { LLVMBuildFAdd(self.builder, lhs, rhs, name) }
+            Token::Minus => if floating { LLVMBuildFSub(self.builder, lhs, rhs, name) } else { LLVMBuildFSub(self.builder, lhs, rhs, name) }
+            Token::Multiply => if floating { LLVMBuildFMul(self.builder, lhs, rhs, name) } else { LLVMBuildFMul(self.builder, lhs, rhs, name) }
+            Token::Divide => if floating { LLVMBuildFDiv(self.builder, lhs, rhs, name) } else { LLVMBuildSDiv(self.builder, lhs, rhs, name) }
+            Token::Greater => if floating { LLVMBuildFCmp(self.builder, FPredicate::LLVMRealUGT, lhs, rhs, name) } else { LLVMBuildICmp(self.builder, IPredicate::LLVMIntUGT, lhs, rhs, name) }
+            Token::GreaterOrEqual => if floating { LLVMBuildFCmp(self.builder, FPredicate::LLVMRealUGE, lhs, rhs, name) } else { LLVMBuildICmp(self.builder, IPredicate::LLVMIntUGE, lhs, rhs, name) }
+            Token::Less => if floating { LLVMBuildFCmp(self.builder, FPredicate::LLVMRealULT, lhs, rhs, name) } else { LLVMBuildICmp(self.builder, IPredicate::LLVMIntULT, lhs, rhs, name) }
+            Token::LessOrEqual => if floating { LLVMBuildFCmp(self.builder, FPredicate::LLVMRealULE, lhs, rhs, name) } else { LLVMBuildICmp(self.builder, IPredicate::LLVMIntULE, lhs, rhs, name) }
+            Token::Equals => if floating { LLVMBuildFCmp(self.builder, FPredicate::LLVMRealUEQ, lhs, rhs, name) } else { LLVMBuildICmp(self.builder, IPredicate::LLVMIntEQ, lhs, rhs, name) }
+            Token::NotEquals => if floating { LLVMBuildFCmp(self.builder, FPredicate::LLVMRealUNE, lhs, rhs, name) } else { LLVMBuildICmp(self.builder, IPredicate::LLVMIntNE, lhs, rhs, name) }
+            Token::Or => LLVMBuildOr(self.builder, lhs, rhs, name),
+            Token::And => LLVMBuildAnd(self.builder, lhs, rhs, name),
+            _ => panic!("Invalid operation {:?}", op),
+        }
+    }
+
+    unsafe fn visit_binexpr(&mut self, binexpr: Expr) -> IGValue {
+        let Expr::Binary { left, op, right } = binexpr else {
+            panic!("Expected binary expression");
+        };
+
+        let lvalue = self.resolve_value(*left.clone());
+        let rvalue = self.resolve_value(*right.clone());
+
+        let _type: LLVMTypeRef;
+        
+        fn is_bool(op: &Token) -> bool {
+            is_kind(op, &Token::Equals) |
+            is_kind(op, &Token::NotEquals) |
+            is_kind(op, &Token::Less) |
+            is_kind(op, &Token::LessOrEqual) |
+            is_kind(op, &Token::Greater) |
+            is_kind(op, &Token::GreaterOrEqual) |
+            is_kind(op, &Token::Not) |
+            is_kind(op, &Token::Or) |
+            is_kind(op, &Token::And)
+        }
+
+        if is_bool(&op) {
+            _type = self.get_type_by_name("bool");
+        } else {
+            _type = lvalue._type;
+        }
+
+        if lvalue.are_both(rvalue.clone(), self.get_type_by_name("i32")) {
+            IGValue::new(self.visit_op(lvalue, rvalue, op, false), _type)
+        } else if lvalue.are_both(rvalue.clone(), self.get_type_by_name("f32")) {
+            IGValue::new(self.visit_op(lvalue, rvalue, op, true), _type)
+        } else {
+            panic!("Unsupported operation '{:?}' between {:?} and {:?}", op, left, right);
+        }
+
+
+    }
+
     unsafe fn resolve_value(&mut self, value: Expr) -> IGValue {
         if let Expr::Int(i) = value {
             let _type = self.get_type_by_name("i32");
-            return IGValue::new(LLVMConstInt(_type, i as u64, 0), _type);
+            IGValue::new(LLVMConstInt(_type, i as u64, 0), _type)
+        } else if let Expr::Float(f) = value {
+            let _type = self.get_type_by_name("f32");
+            IGValue::new(LLVMConstReal(_type, f), _type)
+        } else if let Expr::Symbol(symbol) = value {
+            let Some(val) = self.current_scope.resolve(symbol.clone()) else {
+                panic!("Failed to resolve symbol: {:?}", symbol);
+            };
+
+            IGValue::new(
+                LLVMBuildLoad2(self.builder, val._type, val.value, gen_id()),
+                val._type
+            )
+        } else if let Expr::Binary { .. } = value {
+            self.visit_binexpr(value)
+        } else if let Expr::String(s) = value.clone() {
+            let _type = LLVMPointerType(self.get_type_by_name("i8"), 0);
+            let val = LLVMBuildPointerCast(self.builder, LLVMBuildGlobalString(self.builder, get_cstring(s), gen_id()), _type, gen_id());
+            IGValue::new(val, _type)
+        } else if let Expr::Call { name, args } = value.clone() {
+            panic!("call expressions not supported yet");
+        } else {
+            panic!("Unsupported value: {:?}", value);
         }
 
-        panic!("Unsupported value: {:?}", value);
     }
 
     unsafe fn write_ir(&self, output: &Path) {
