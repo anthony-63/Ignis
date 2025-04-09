@@ -4,4 +4,5 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+llvm-sys-180 = { package = "llvm-sys", version = "180", optional = false }
 logos = "0.15.0"

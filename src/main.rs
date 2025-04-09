@@ -1,8 +1,10 @@
 mod lexer;
 mod parser;
+pub mod compiler;
 
-use std::env::args;
+use std::{env::args, path::Path};
 
+use compiler::Compiler;
 use lexer::Token;
 use logos::Logos;
 use parser::Parser;
@@ -10,16 +12,17 @@ use parser::Parser;
 fn main() {
     let args = args().skip(1).collect::<Vec<_>>();
 
-    if args.len() != 1 {
+    if args.len() != 2 {
         eprintln!("Usage: ignis <input>");
         return;
     }
 
     let mut iter = args.iter();
 
-    let ouput = String::from("a.out");
-
+    
     let source = std::fs::read_to_string(iter.next().unwrap()).expect("Failed to find file");
+    let output = iter.next().unwrap();
+
     let lexer = lexer::Token::lexer(&source);
     let mut tokens = vec![];
 
@@ -41,4 +44,6 @@ fn main() {
 
     let ast = Parser::parse(tokens);
     println!("{:#?}", ast);
+
+    Compiler::compile(Path::new(output), ast);
 }
