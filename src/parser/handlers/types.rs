@@ -1,14 +1,14 @@
 use crate::{lexer::Token, parser::{ast::Type, pratt::BindingPower, Parser}};
 
 pub fn parse_type(parser: &mut Parser, bp: BindingPower) -> Type {
-    let nud_fn = parser.get_type_nud(parser.current()).expect(&format!("NUD TYPE FUNCTION DOESNT EXIST FOR TOKEN {:?}", parser.current()));
+    let nud_fn = parser.get_type_nud(parser.current()).unwrap_or_else(|| panic!("NUD TYPE FUNCTION DOESNT EXIST FOR TOKEN {:?}", parser.current()));
     let mut left = nud_fn(parser);
     loop {
         if let Some(bp_) = parser.get_bp(parser.current()) {
             if *bp_ as usize <= bp as usize {
                 break;
             }
-            let led_fn = parser.get_type_led(parser.current()).expect(&format!("LED TYPE FUNCTION DOESNT EXIST FOR TOKEN {:?}", parser.current()));
+            let led_fn = parser.get_type_led(parser.current()).unwrap_or_else(|| panic!("LED TYPE FUNCTION DOESNT EXIST FOR TOKEN {:?}", parser.current()));
             left = led_fn(parser, left, bp);
             
         } else {

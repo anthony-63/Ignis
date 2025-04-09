@@ -15,7 +15,7 @@ pub struct IGScope {
 
 impl IGScope {
     pub fn new(symbols: Option<SymbolTable>, name: Option<String>, parent: Option<Box<Self>>) -> Self {
-        let _symbols = symbols.unwrap_or(SymbolTable::new());
+        let _symbols = symbols.unwrap_or_default();
         Self {
             symbols: _symbols,
             parent,

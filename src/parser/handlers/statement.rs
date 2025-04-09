@@ -1,4 +1,3 @@
-use std::env::var;
 
 use crate::{lexer::Token, parser::{ast::{Expr, Stmt, Type}, pratt::BindingPower, Parser}};
 
@@ -132,7 +131,7 @@ pub fn parse_struct_declaration(parser: &mut Parser, name: String) -> Stmt {
         
         let _type = parse_type(parser, BindingPower::Default);
 
-        fields.push(Stmt::Field { name: name, _type: Box::new(_type) });
+        fields.push(Stmt::Field { name, _type: Box::new(_type) });
         if !parser.is_current_kind(Token::CloseCurly) {
             parser.expect(Token::Comma);
         }
@@ -164,7 +163,7 @@ pub fn parse_var_decl(parser: &mut Parser) -> Stmt {
 
     parser.expect(Token::Semicolon);
 
-    Stmt::VariableDeclaration { name: name.into(), mutable, explicit_type: explicit_type, value: Box::new(val) }
+    Stmt::VariableDeclaration { name, mutable, explicit_type, value: Box::new(val) }
 }
 
 pub fn parse_extern(parser: &mut Parser, name: String) -> Stmt {

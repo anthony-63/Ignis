@@ -1,6 +1,6 @@
 
 use crate::lexer::Token;
-use super::{ast::Expr, lookup::LookupTable, Parser};
+use super::{lookup::LookupTable, Parser};
 
 #[derive(Clone, Copy)]
 #[repr(usize)]

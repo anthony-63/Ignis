@@ -3,14 +3,14 @@ use crate::{lexer::Token, parser::{ast::Expr, pratt::BindingPower, Parser}};
 use super::statement::*;
 
 pub fn parse_expression(parser: &mut Parser, bp: BindingPower) -> Expr {
-    let nud_fn = parser.get_nud(parser.current()).expect(&format!("NUD FUNCTION DOESNT EXIST FOR TOKEN {:?}", parser.current()));
+    let nud_fn = parser.get_nud(parser.current()).unwrap_or_else(|| panic!("NUD FUNCTION DOESNT EXIST FOR TOKEN {:?}", parser.current()));
     let mut left = nud_fn(parser);
     loop {
         if let Some(bp_) = parser.get_bp(parser.current()) {
             if *bp_ as usize <= bp as usize {
                 break;
             }
-            let led_fn = parser.get_led(parser.current()).expect(&format!("LED FUNCTION DOESNT EXIST FOR TOKEN {:?}", parser.current()));
+            let led_fn = parser.get_led(parser.current()).unwrap_or_else(|| panic!("LED FUNCTION DOESNT EXIST FOR TOKEN {:?}", parser.current()));
             left = led_fn(parser, left, bp);
             
         } else {
@@ -78,7 +78,7 @@ pub fn parse_grouped_expression(parser: &mut Parser) -> Expr {
 pub fn parse_prefix_expression(parser: &mut Parser) -> Expr {
     let op = parser.advance().clone();
 
-    let nud_fn = parser.get_nud(parser.current()).expect(&format!("NUD FUNCTION DOESNT EXIST FOR TOKEN {:?}", parser.current()));
+    let nud_fn = parser.get_nud(parser.current()).unwrap_or_else(|| panic!("NUD FUNCTION DOESNT EXIST FOR TOKEN {:?}", parser.current()));
     let right = nud_fn(parser);
 
     Expr::Prefix { op, right: Box::new(right) }
