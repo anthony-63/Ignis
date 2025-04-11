@@ -93,7 +93,7 @@ impl Parser {
         while parser.has_tokens() {
             body.push(parse_stmt(&mut parser));
         }
-        
+                
         Stmt::Block(body)
     }
 

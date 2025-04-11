@@ -4,9 +4,10 @@ pub mod scope;
 pub mod value;
 pub mod namegen;
 
-use std::{alloc::{self, Layout}, collections::HashMap, ffi::CString, path::Path};
+use std::{alloc::{self, Layout}, collections::HashMap, ffi::CString, path::Path, process::{self, Command}};
 
-use llvm_sys_180::{core::{LLVMAddFunction, LLVMAppendBasicBlock, LLVMAppendBasicBlockInContext, LLVMBuildAlloca, LLVMBuildAnd, LLVMBuildCall2, LLVMBuildFAdd, LLVMBuildFCmp, LLVMBuildFDiv, LLVMBuildFMul, LLVMBuildFSub, LLVMBuildGlobalString, LLVMBuildICmp, LLVMBuildLoad2, LLVMBuildOr, LLVMBuildPointerCast, LLVMBuildRet, LLVMBuildRetVoid, LLVMBuildSDiv, LLVMBuildStore, LLVMConstInt, LLVMConstReal, LLVMContextCreate, LLVMCreateBuilderInContext, LLVMDoubleTypeInContext, LLVMFloatTypeInContext, LLVMFunctionType, LLVMGetParam, LLVMGetReturnType, LLVMGetTypeKind, LLVMHalfTypeInContext, LLVMIntTypeInContext, LLVMModuleCreateWithNameInContext, LLVMPointerType, LLVMPositionBuilderAtEnd, LLVMPrintModuleToFile, LLVMVoidTypeInContext}, prelude::{LLVMBuilderRef, LLVMContextRef, LLVMModuleRef, LLVMTypeRef, LLVMValueRef}, LLVMContext, LLVMValue};
+use llvm_sys_180::{core::{LLVMAddFunction, LLVMAppendBasicBlock, LLVMAppendBasicBlockInContext, LLVMBuildAlloca, LLVMBuildAnd, LLVMBuildCall2, LLVMBuildFAdd, LLVMBuildFCmp, LLVMBuildFDiv, LLVMBuildFMul, LLVMBuildFSub, LLVMBuildGlobalString, LLVMBuildICmp, LLVMBuildLoad2, LLVMBuildOr, LLVMBuildPointerCast, LLVMBuildRet, LLVMBuildRetVoid, LLVMBuildSDiv, LLVMBuildStore, LLVMConstInt, LLVMConstReal, LLVMContextCreate, LLVMCreateBuilderInContext, LLVMDoubleTypeInContext, LLVMFloatTypeInContext, LLVMFunctionType, LLVMGetParam, LLVMGetReturnType, LLVMGetTypeKind, LLVMHalfTypeInContext, LLVMIntTypeInContext, LLVMModuleCreateWithNameInContext, LLVMPointerType, LLVMPositionBuilderAtEnd, LLVMPrintModuleToFile, LLVMTypeOf, LLVMVoidTypeInContext}, prelude::{LLVMBuilderRef, LLVMContextRef, LLVMModuleRef, LLVMTypeRef, LLVMValueRef}, LLVMContext, LLVMTypeKind, LLVMValue};
+use logos::Logos;
 use namegen::{gen_id, gen_id_pre, gen_id_prepost};
 use scope::IGScope;
 use value::IGValue;
@@ -14,7 +15,7 @@ use value::IGValue;
 use llvm_sys_180::LLVMRealPredicate as FPredicate;
 use llvm_sys_180::LLVMIntPredicate as IPredicate;
 
-use crate::{lexer::Token, parser::{ast::{Expr, Stmt, Type}, is_kind}};
+use crate::{lexer::{self, Token}, parser::{ast::{Expr, Stmt, Type}, is_kind, Parser}};
 
 type TypeMap = HashMap<String, LLVMTypeRef>;
 
@@ -27,7 +28,6 @@ pub struct Compiler{
     type_map: TypeMap,
     libs: Vec<IGLib>,
 
-    included: Vec<Compiler>,
     include_paths: Vec<String>,
 
     context: LLVMContextRef,
@@ -35,6 +35,10 @@ pub struct Compiler{
     builder: LLVMBuilderRef,
 
     current_scope: IGScope,
+
+    output: String,
+    outputs: Vec<String>,
+    cwd: String,
 }
 
 impl Compiler {
@@ -71,30 +75,82 @@ impl Compiler {
         self.get_type(Type::Symbol(name.into()))
     }
 
-    unsafe fn new() -> Self {
+    unsafe fn new(output: String, include_paths: Vec<String>, cwd: Option<String>) -> Self {
         let context: *mut LLVMContext = LLVMContextCreate();
+        let _cwd = if let Some(c) = cwd {
+            c
+        } else {
+            std::env::current_dir().unwrap().to_string_lossy().to_string()
+        };
 
         Self {
             type_map: Self::get_type_map(context),
             
             libs: vec![],
 
-            included: vec![],
-            include_paths: vec![],
+            include_paths,
+            outputs: vec![Path::new(&output.clone()).with_extension("ll").to_string_lossy().to_string()],
 
             current_scope: IGScope::new(None, None, None),
 
             module: LLVMModuleCreateWithNameInContext(get_cstring("ignis".into()), context),
             builder: LLVMCreateBuilderInContext(context),
             context,
+            output,
+            cwd: _cwd,
+        }
+    }  
+
+    fn execute_command(cmd: &str, args: Vec<&str>) {
+        let out = Command::new(cmd)
+            .args(args)
+            .output()
+            .expect(&format!("Failed to execute ''{}'", cmd));
+        if !out.status.success() {
+            println!("'{}' executed with code {:?}", cmd, out.status.code().unwrap());
+        }
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        if !stdout.is_empty() {
+            println!("{}", stdout);
+        } 
+        if !stderr.is_empty() {
+            println!("{}", stderr);
         }
     }
 
-    pub fn compile(output: &Path, ast: Stmt) {
+    pub fn compile(output: &Path, ast: Stmt, include_paths: Vec<String>, cwd: Option<String>, inside: bool) -> Self {
         unsafe {
-            let mut compiler = Self::new();
+            let mut compiler = Self::new(output.to_string_lossy().to_string(), include_paths, cwd);
             compiler.visit_block(ast);
             compiler.write_ir(&output.with_extension("ll"));
+
+            if !inside {
+                let mut obj_files = vec![];
+                for out in compiler.outputs.iter() {
+                    let path = Path::new(&out.clone()).with_extension("o");
+                    obj_files.push(path.to_string_lossy().to_string());
+                    Self::execute_command("llc", vec!["--filetype=obj", &out, "-o", path.to_str().unwrap()]);
+                }
+                
+                let mut comp_arg = vec!["-o", output.to_str().unwrap(), "-no-pie"];
+                for obj in &obj_files {
+                    comp_arg.push(obj);
+                }
+            
+                Self::execute_command("gcc", comp_arg);
+
+                for obj in &obj_files {
+                    std::fs::remove_file(obj).expect("Failed to remove obj files");
+                }
+
+                for out in compiler.outputs.clone() {
+                    std::fs::remove_file(out).expect("Failed to remove llvm ir files");
+                }
+            }
+
+            compiler
+
         }
     }
 
@@ -119,6 +175,8 @@ impl Compiler {
             self.visit_variable_declaration(stmt.clone(), true);
         } else if let Stmt::Extern { .. } = stmt {
             self.visit_extern(stmt.clone());   
+        } else if let Stmt::Include { .. } = stmt {
+            self.visit_include(stmt.clone());
         } else {
             panic!("Unsupported statement: {:?}", stmt);
         }
@@ -147,6 +205,65 @@ impl Compiler {
         let func = LLVMAddFunction(self.module, get_cstring(symbol), func_type);
 
         self.current_scope.define(name, func, func_type, false, true);
+    }
+
+    fn get_include_path(&self, inc: String) -> String {
+        if std::fs::exists(inc.clone()).unwrap() {
+            return inc;
+        }
+
+        let cwd_path = Path::new(&self.cwd).join(inc.clone());
+        if std::fs::exists(cwd_path.clone()).unwrap() {
+            return cwd_path.to_string_lossy().to_string();
+        }
+
+        for path in &self.include_paths {
+            let inc_path = Path::new(path).join(inc.clone());
+            if std::fs::exists(inc_path.clone()).unwrap() {
+                return inc_path.to_string_lossy().to_string();
+            }
+        }
+
+        panic!("Failed to include source file {:?}", inc);
+    }
+
+    unsafe fn visit_include(&mut self, stmt: Stmt) {
+        let Stmt::Include { path } = stmt else {
+            panic!("Expected include");
+        };
+
+        let inc = self.get_include_path(path);
+        let inc_path = Path::new(&inc);
+
+        let outpath = Path::new(&self.output).parent().unwrap();
+        let source = std::fs::read_to_string(inc_path).expect("Failed to include file<NOT FOUND>");
+        let lexer = lexer::Token::lexer(&source);
+        let mut tokens = vec![];
+
+        for t in lexer {
+            match t {
+                Ok(tok) => tokens.push(tok),
+                Err(e) => {
+                    if !e.is_empty() {
+                        println!("Invalid token: {}", e);
+                        return;
+                    }
+                },
+            }
+        }
+
+        tokens.push(Token::EOF);
+
+        let ast = Parser::parse(tokens);
+        let partial = outpath.join(inc_path.to_string_lossy().to_string().replace("\\", "_").replace("/", "_"));
+        let mut compiler = Self::compile(Path::new(&partial), ast, self.include_paths.clone(), Some(inc_path.parent().unwrap().to_string_lossy().to_string()), true);
+        for (name, value) in compiler.current_scope.symbols {
+            if LLVMGetTypeKind(LLVMTypeOf(value.clone().value)) == LLVMTypeKind::LLVMPointerTypeKind && value.public {
+                let func = LLVMAddFunction(self.module, get_cstring(name.clone()), value._type);
+                self.current_scope.define(name, func, value._type, false, false);
+            }
+        }
+        self.outputs.append(&mut compiler.outputs);
     }
 
     unsafe fn visit_assignment_expr(&mut self, expr: Expr) {
@@ -381,3 +498,15 @@ fn get_cstring(s: String) -> *mut i8 {
     let mut tmp: Vec<i8> = cv.into_iter().map(|c| c as i8).collect::<_>();
     tmp.as_mut_ptr()
 }
+
+fn is_program_in_path(program: &str) -> bool {
+    if let Ok(path) = std::env::var("PATH") {
+        for p in path.split(":") {
+            let p_str = format!("{}/{}", p, program);
+            if std::fs::metadata(p_str).is_ok() {
+                return true;
+            }
+        }
+    }
+    false
+}  

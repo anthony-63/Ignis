@@ -235,7 +235,7 @@ pub fn parse_return(parser: &mut Parser) -> Stmt {
 
 pub fn parse_include(parser: &mut Parser) -> Stmt {
     parser.advance();
-    let Token::String(val) = parser.expect(Token::String(String::new())) else {
+    let Token::String(val) = parser.advance() else {
         panic!("Expected string for include path");
     };
 

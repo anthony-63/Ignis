@@ -39,13 +39,9 @@ fn main() {
     }
 
     tokens.push(Token::EOF);
-
-    println!("{:?}", tokens);
-
     let ast = Parser::parse(tokens);
-    println!("{:#?}", ast);
 
-    Compiler::compile(Path::new(output), ast);
+    Compiler::compile(Path::new(output), ast, vec![], None, false);
 }
 
 fn mnt_to_string(bytes: &[i8]) -> String {

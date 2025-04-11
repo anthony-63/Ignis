@@ -8,7 +8,7 @@ type SymbolTable = HashMap<String, IGValue>;
 
 #[derive(Clone)]
 pub struct IGScope {
-    symbols: SymbolTable,
+    pub symbols: SymbolTable,
     parent: Option<Box<Self>>,
     name: Option<String>,
 }

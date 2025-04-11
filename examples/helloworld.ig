@@ -1,4 +1,4 @@
-writes -> extern[puts](tp string) i32;
+include "std/io.ig"
 
 main -> sub() {
     immut hello = "hi";
