@@ -38,7 +38,7 @@ impl Parser {
         lu.led(Token::Plus, BindingPower::Additive, parse_binary_expression);
         lu.led(Token::Minus, BindingPower::Additive, parse_binary_expression);
 
-        // lu.led(Token::Assignment, BindingPower::Assignment, parse_binary_expression);
+        lu.led(Token::Assignment, BindingPower::Assignment, parse_assignment_expression);
 
         lu.led(Token::Multiply, BindingPower::Multiplicative, parse_binary_expression);
         lu.led(Token::Divide, BindingPower::Multiplicative, parse_binary_expression);
@@ -47,11 +47,11 @@ impl Parser {
         
         lu.led(Token::Arrow, BindingPower::Primary, parse_arrow_expression);
 
-        // lu.led(Token::Dot, BindingPower::Member, parse_binary_expression);
+        lu.led(Token::Dot, BindingPower::Member, parse_access_expression);
         lu.led(Token::OpenParen, BindingPower::Call, parse_call_expression);
 
-        // lu.led(Token::PlusEquals, BindingPower::Call, parse_binary_expression);
-        // lu.led(Token::MinusEquals, BindingPower::Call, parse_binary_expression);
+        lu.led(Token::PlusEquals, BindingPower::Call, parse_op_equals_expression);
+        lu.led(Token::MinusEquals, BindingPower::Call, parse_op_equals_expression);
 
         lu.nud(Token::New, parse_struct_create_expression);
 

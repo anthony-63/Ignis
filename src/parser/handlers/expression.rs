@@ -75,6 +75,12 @@ pub fn parse_grouped_expression(parser: &mut Parser) -> Expr {
     expr
 }
 
+pub fn parse_assignment_expression(parser: &mut Parser, left: Expr, _bp: BindingPower) -> Expr {
+    parser.advance();
+
+    Expr::Assignment { assignee: Box::new(left), right: Box::new(parse_expression(parser, BindingPower::Default)) }
+}
+
 pub fn parse_prefix_expression(parser: &mut Parser) -> Expr {
     let op = parser.advance().clone();
 
@@ -102,6 +108,38 @@ pub fn parse_call_expression(parser: &mut Parser, left: Expr, bp: BindingPower) 
     parser.expect(Token::CloseParen);
 
     Expr::Call { name: callee, args: arguments }
+}
+
+pub fn parse_op_equals_expression(parser: &mut Parser, left: Expr, bp: BindingPower) -> Expr {
+    let Expr::Symbol(lhs) = left.clone() else {
+        panic!("Expected symbol on LHS of 'OPERATOR=' expression, got {:?}", left);
+    };
+
+    let real_op = match parser.current() {
+        Token::PlusEquals => Token::Plus,
+        Token::MinusEquals => Token::Minus,
+        _ => panic!("Invalid 'OPERATOR=' expression {:?}", left),
+    };
+
+    parser.advance();
+
+    Expr::Assignment { 
+        assignee: Box::new(left.clone()),
+        right: Box::new(Expr::Binary {
+            left: Box::new(left),
+            op: real_op,
+            right: Box::new(parse_expression(parser, BindingPower::Default)),
+        }),
+    }
+}
+
+pub fn parse_access_expression(parser: &mut Parser, left: Expr, bp: BindingPower) -> Expr {
+    parser.advance();
+
+    let Token::Identifier(right) = parser.advance() else {
+        panic!("Expected identifier on rhs of access expression");
+    };
+    Expr::Access { lhs: Box::new(left), rhs: Box::new(Expr::Symbol(right.clone())) }
 }
 
 pub fn parse_struct_create_expression(parser: &mut Parser) -> Expr {

@@ -30,7 +30,7 @@ pub enum Expr {
     },
 
     Assignment {
-        assignee: String,
+        assignee: Box<Expr>,
         right: Box<Expr>,
     },
 
@@ -38,6 +38,11 @@ pub enum Expr {
         name: String,
 
         fields: Vec<Stmt>,
+    },
+
+    Access {
+        lhs: Box<Expr>,
+        rhs: Box<Expr>
     },
 
     StmtHack(Stmt),

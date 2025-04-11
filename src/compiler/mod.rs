@@ -111,10 +111,12 @@ impl Compiler {
     unsafe fn visit(&mut self, stmt: Stmt) {
         if let Stmt::FunctionDeclaration { .. } = stmt {
             self.visit_function_declaration(stmt.clone());
-        } if let Stmt::Return { .. } = stmt {
+        } else if let Stmt::Return { .. } = stmt {
             self.visit_return(stmt.clone());
-        } if let Stmt::VariableDeclaration { .. } = stmt {
+        } else if let Stmt::VariableDeclaration { .. } = stmt {
             self.visit_variable_declaration(stmt.clone(), true);
+        } else {
+            panic!("Unsupported statement: {:?}", stmt);
         }
     }
 
