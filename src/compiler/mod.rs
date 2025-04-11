@@ -6,7 +6,7 @@ pub mod namegen;
 
 use std::{alloc::{self, Layout}, collections::HashMap, ffi::CString, path::Path};
 
-use llvm_sys_180::{core::{LLVMAddFunction, LLVMAppendBasicBlock, LLVMAppendBasicBlockInContext, LLVMBuildAlloca, LLVMBuildAnd, LLVMBuildFAdd, LLVMBuildFCmp, LLVMBuildFDiv, LLVMBuildFMul, LLVMBuildFSub, LLVMBuildGlobalString, LLVMBuildICmp, LLVMBuildLoad2, LLVMBuildOr, LLVMBuildPointerCast, LLVMBuildRet, LLVMBuildRetVoid, LLVMBuildSDiv, LLVMBuildStore, LLVMConstInt, LLVMConstReal, LLVMContextCreate, LLVMCreateBuilderInContext, LLVMDoubleTypeInContext, LLVMFloatTypeInContext, LLVMFunctionType, LLVMGetParam, LLVMHalfTypeInContext, LLVMIntTypeInContext, LLVMModuleCreateWithNameInContext, LLVMPointerType, LLVMPositionBuilderAtEnd, LLVMPrintModuleToFile, LLVMVoidTypeInContext}, prelude::{LLVMBuilderRef, LLVMContextRef, LLVMModuleRef, LLVMTypeRef, LLVMValueRef}, LLVMContext};
+use llvm_sys_180::{core::{LLVMAddFunction, LLVMAppendBasicBlock, LLVMAppendBasicBlockInContext, LLVMBuildAlloca, LLVMBuildAnd, LLVMBuildCall2, LLVMBuildFAdd, LLVMBuildFCmp, LLVMBuildFDiv, LLVMBuildFMul, LLVMBuildFSub, LLVMBuildGlobalString, LLVMBuildICmp, LLVMBuildLoad2, LLVMBuildOr, LLVMBuildPointerCast, LLVMBuildRet, LLVMBuildRetVoid, LLVMBuildSDiv, LLVMBuildStore, LLVMConstInt, LLVMConstReal, LLVMContextCreate, LLVMCreateBuilderInContext, LLVMDoubleTypeInContext, LLVMFloatTypeInContext, LLVMFunctionType, LLVMGetParam, LLVMGetReturnType, LLVMGetTypeKind, LLVMHalfTypeInContext, LLVMIntTypeInContext, LLVMModuleCreateWithNameInContext, LLVMPointerType, LLVMPositionBuilderAtEnd, LLVMPrintModuleToFile, LLVMVoidTypeInContext}, prelude::{LLVMBuilderRef, LLVMContextRef, LLVMModuleRef, LLVMTypeRef, LLVMValueRef}, LLVMContext, LLVMValue};
 use namegen::{gen_id, gen_id_pre, gen_id_prepost};
 use scope::IGScope;
 use value::IGValue;
@@ -109,15 +109,80 @@ impl Compiler {
     }
 
     unsafe fn visit(&mut self, stmt: Stmt) {
-        if let Stmt::FunctionDeclaration { .. } = stmt {
+        if let Stmt::Expression(expr) = stmt {
+            self.visit_expression(*expr);
+        } else if let Stmt::FunctionDeclaration { .. } = stmt {
             self.visit_function_declaration(stmt.clone());
         } else if let Stmt::Return { .. } = stmt {
             self.visit_return(stmt.clone());
         } else if let Stmt::VariableDeclaration { .. } = stmt {
             self.visit_variable_declaration(stmt.clone(), true);
+        } else if let Stmt::Extern { .. } = stmt {
+            self.visit_extern(stmt.clone());   
         } else {
             panic!("Unsupported statement: {:?}", stmt);
         }
+    }
+
+    unsafe fn visit_expression(&mut self, expr: Expr) {
+        if let Expr::Binary { .. } = expr {
+            self.visit_binexpr(expr);
+        } else if let Expr::Assignment { .. } = expr {
+            self.visit_assignment_expr(expr);
+        } else if let Expr::Call { .. } = expr {
+            self.visit_call_expr(expr);
+        } else {
+            panic!("Unsupported expression: {:?}", expr);
+        }
+    }
+
+    unsafe fn visit_extern(&mut self, stmt: Stmt) {
+        let Stmt::Extern { name, symbol, return_type, arguments } = stmt else {
+            panic!("Expected extern");
+        };
+
+        let types = self.get_arg_types(arguments.clone());
+        let ret_type = self.get_type(*return_type);
+        let func_type = LLVMFunctionType(ret_type, types.clone().as_mut_ptr(), types.len() as u32, 0);
+        let func = LLVMAddFunction(self.module, get_cstring(symbol), func_type);
+
+        self.current_scope.define(name, func, func_type, false, true);
+    }
+
+    unsafe fn visit_assignment_expr(&mut self, expr: Expr) {
+        let Expr::Assignment { assignee, right } = expr else {
+            panic!("Expected assignment expression");
+        };
+
+        let left = self.resolve_value(*assignee.clone());
+        let val = self.resolve_value(*right);
+
+        if !left.mutable {
+            panic!("Attempted to assign to an immutable variable {:?}", assignee);
+        }
+        LLVMBuildStore(self.builder, val.value, left.value);
+    }
+
+    unsafe fn visit_call_expr(&mut self, expr: Expr) -> Option<IGValue> {
+        let Expr::Call { name, args } = expr else {
+            panic!("Expected call expression");
+        };
+
+        let Some(f) = self.current_scope.resolve(name.clone()) else {
+            panic!("Failed to resolve function {:?}", name);
+        };
+
+        let f_type = f.clone()._type;
+        let f_value = f.clone().value;
+
+        let args = self.get_arg_values(args);
+
+        if LLVMGetTypeKind(self.get_type_by_name("void")) == LLVMGetTypeKind(LLVMGetReturnType(f_type)) {
+            LLVMBuildCall2(self.builder, f_type, f_value, args.clone().as_mut_ptr(), args.len() as u32, get_cstring("".into()));   
+            return None;
+        }
+
+        Some(IGValue::new(LLVMBuildCall2(self.builder, f_type, f_value, args.clone().as_mut_ptr(), args.len() as u32, gen_id()), f_type))
     }
 
     unsafe fn visit_variable_declaration(&mut self, stmt: Stmt, define: bool) {
@@ -147,6 +212,15 @@ impl Compiler {
             types.push(self.get_type(*_type));
         }
         types
+    }
+
+    
+    unsafe fn get_arg_values(&mut self, args: Vec<Expr>) -> Vec<LLVMValueRef> {
+        let mut values = vec![];
+        for arg in args {
+            values.push(self.resolve_value(arg).value);
+        }
+        values
     }
 
     unsafe fn visit_function_declaration(&mut self, stmt: Stmt) {

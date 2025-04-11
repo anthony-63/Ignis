@@ -176,6 +176,7 @@ pub fn parse_extern(parser: &mut Parser, name: String) -> Stmt {
         };
         symbol = s.into();
     }
+    parser.advance();
 
     parser.expect(Token::OpenParen);
 
