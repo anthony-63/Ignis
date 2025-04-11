@@ -176,7 +176,10 @@ pub fn parse_extern(parser: &mut Parser, name: String) -> Stmt {
         };
         symbol = s.into();
     }
-    parser.advance();
+
+    if parser.is_current_kind(Token::CloseBracket) {
+        parser.advance();
+    }
 
     parser.expect(Token::OpenParen);
 
