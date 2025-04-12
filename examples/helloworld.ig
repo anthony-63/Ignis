@@ -5,7 +5,7 @@ Person -> struct {
 }
 
 main -> sub() {
-    immut hello = new Person {
+    let hello = new Person {
         name: "john",
     };
 

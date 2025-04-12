@@ -373,6 +373,10 @@ impl Compiler {
                 self.current_scope.define(name, value.value, value._type, false, false);
             }
         }
+        for (name, i) in compiler.current_scope.fields {
+            self.current_scope.fields.insert(name, i);
+        }
+
         self.libs.append(&mut compiler.libs);
         self.outputs.append(&mut compiler.outputs);
     }
@@ -383,6 +387,8 @@ impl Compiler {
         };
 
         let left = self.resolve_value(*assignee.clone());
+        
+        println!("{:?}", left);
         let val = self.resolve_value(*right);
 
         if !left.mutable {
@@ -414,7 +420,7 @@ impl Compiler {
     }
 
     unsafe fn visit_variable_declaration(&mut self, stmt: Stmt, define: bool) {
-        let Stmt::VariableDeclaration { name, mutable, explicit_type, value } = stmt else {
+        let Stmt::VariableDeclaration { name, explicit_type, value } = stmt else {
             panic!("Expected variable declaration");
         };
 
@@ -424,9 +430,9 @@ impl Compiler {
             LLVMBuildStore(self.builder, val.value, alloca);
             if define {
                 if val.parent.is_some() {
-                    self.current_scope.define_struct(name, val.value, val._type, mutable, true, val.parent.unwrap());
+                    self.current_scope.define_struct(name, val.value, val._type, true, true, val.parent.unwrap());
                 } else {
-                    self.current_scope.define(name, val.value, val._type, mutable, true);
+                    self.current_scope.define(name, alloca, val._type, true, true);
                 }
             }
         } else {
@@ -580,7 +586,6 @@ impl Compiler {
             let Some(val) = self.current_scope.resolve(symbol.clone()) else {
                 panic!("Failed to resolve symbol: {:?}", symbol);
             };
-
             IGValue::new(
                 LLVMBuildLoad2(self.builder, val._type, val.value, gen_id()),
                 val._type

@@ -130,10 +130,8 @@ pub enum Token {
     #[token("sizeof")]
     Sizeof,
 
-    #[token("mut")]
-    Mut,
-    #[token("immut")]
-    Immut,
+    #[token("let")]
+    Let,
 
     #[token("linkstatic")]
     LinkStatic,

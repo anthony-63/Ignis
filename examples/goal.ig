@@ -19,11 +19,11 @@ Point -> struct {
 // Main program
 main -> sub() void {
     // Create two Point structs
-    mut p1 = Point{x: 0, y: 0};
-    mut p2 = Point{x: 3, y: 4};
+    let p1 = Point{x: 0, y: 0};
+    let p2 = Point{x: 3, y: 4};
 
     // Log the distance between the two points using the method
-    mut result = p1.distance(p2);  // Call the method on p1
+    let result = p1.distance(p2);  // Call the method on p1
     log("Distance:", result);
 
     // Move p1 by (5, 7)
@@ -36,14 +36,10 @@ main -> sub() void {
     }
 
     // Using a range with a variable upper bound
-    mut upper_bound = 3;
+    let upper_bound = 3;
     for i in [0..upper_bound] {
         log("Range with upper bound variable:", i);
     }
-
-    // Attempt to modify an immutable variable (will cause an error)
-    immut constant_value = 10;
-    // constant_value = constant_value + 5  // Error: cannot modify immutable value
 }
 
 // Math function to calculate square root (for demonstration)

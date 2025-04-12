@@ -160,7 +160,6 @@ pub fn parse_struct_declaration(parser: &mut Parser, name: String) -> Stmt {
 }
 
 pub fn parse_var_decl(parser: &mut Parser) -> Stmt {
-    let mutable = parser.is_current_kind(Token::Mut);
     parser.advance();
 
     let Token::Identifier(var_name) = parser.advance() else {
@@ -180,7 +179,7 @@ pub fn parse_var_decl(parser: &mut Parser) -> Stmt {
 
     parser.expect(Token::Semicolon);
 
-    Stmt::VariableDeclaration { name, mutable, explicit_type, value: Box::new(val) }
+    Stmt::VariableDeclaration { name, explicit_type, value: Box::new(val) }
 }
 
 pub fn parse_extern(parser: &mut Parser, name: String) -> Stmt {

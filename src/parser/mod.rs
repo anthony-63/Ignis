@@ -70,8 +70,7 @@ impl Parser {
 
         lu.stmt(Token::If, parse_if);
         lu.stmt(Token::While, parse_while);
-        lu.stmt(Token::Mut, parse_var_decl);
-        lu.stmt(Token::Immut, parse_var_decl);
+        lu.stmt(Token::Let, parse_var_decl);
         lu.stmt(Token::Return, parse_return);
         lu.stmt(Token::LinkStatic, parse_link_static);
         lu.stmt(Token::LinkLib, parse_link_lib);

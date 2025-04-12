@@ -58,7 +58,6 @@ pub enum Stmt {
 
     VariableDeclaration {
         name: String,
-        mutable: bool,
 
         explicit_type: Option<Box<Type>>,
 
