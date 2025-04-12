@@ -63,7 +63,7 @@ impl Parser {
         lu.nud(Token::False, parse_bool_expression);
 
         // lu.nud(Token::OpenBracket, parse_struct_create_expression);
-        lu.nud(Token::Not, parse_not_expression);
+        lu.nud(Token::Not, parse_prefix_expression);
         lu.nud(Token::OpenParen, parse_grouped_expression);
 
         lu.nud(Token::Minus, parse_prefix_expression);

@@ -40,11 +40,6 @@ pub fn parse_primary_expression(parser: &mut Parser) -> Expr {
     v
 }
 
-pub fn parse_not_expression(parser: &mut Parser) -> Expr {
-    let v = parse_expression(parser, BindingPower::Default);
-    Expr::Prefix { op: Token::Not, right: Box::new(v) }
-}
-
 pub fn parse_bool_expression(parser: &mut Parser) -> Expr {
     let v = Expr::Bool(parser.is_current_kind(Token::True));
     parser.advance();
@@ -101,7 +96,7 @@ pub fn parse_prefix_expression(parser: &mut Parser) -> Expr {
 
 pub fn parse_call_expression(parser: &mut Parser, left: Expr, bp: BindingPower) -> Expr {
     let Expr::Symbol(callee) = left else {
-        panic!("Expected symbol on the left of a function call");
+        panic!("Expected symbol on the left of a function call but got {:?}", left);
     }; 
     parser.advance();
 

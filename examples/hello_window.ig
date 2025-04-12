@@ -4,7 +4,7 @@ include "std/io.ig"
 main -> sub() {
     init_window(800, 600, "Hello world!");
 
-    while true {
+    while !(window_should_close()) {
         begin_drawing();
 
         end_drawing();

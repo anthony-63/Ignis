@@ -6,7 +6,7 @@ pub mod namegen;
 
 use std::{alloc::{self, Layout}, any::Any, collections::HashMap, ffi::{CStr, CString}, path::Path, process::{self, Command}};
 
-use llvm_sys_180::{core::{LLVMAddFunction, LLVMAddGlobal, LLVMAppendBasicBlock, LLVMAppendBasicBlockInContext, LLVMBuildAlloca, LLVMBuildAnd, LLVMBuildBr, LLVMBuildCall2, LLVMBuildCondBr, LLVMBuildFAdd, LLVMBuildFCmp, LLVMBuildFDiv, LLVMBuildFMul, LLVMBuildFSub, LLVMBuildGEP2, LLVMBuildGlobalString, LLVMBuildICmp, LLVMBuildInsertValue, LLVMBuildLoad2, LLVMBuildOr, LLVMBuildPointerCast, LLVMBuildRet, LLVMBuildRetVoid, LLVMBuildSDiv, LLVMBuildStore, LLVMBuildStructGEP2, LLVMConstInt, LLVMConstReal, LLVMContextCreate, LLVMCreateBuilderInContext, LLVMDoubleTypeInContext, LLVMFloatTypeInContext, LLVMFunctionType, LLVMGetAggregateElement, LLVMGetBasicBlockParent, LLVMGetInsertBlock, LLVMGetParam, LLVMGetReturnType, LLVMGetStructElementTypes, LLVMGetStructName, LLVMGetTypeKind, LLVMGetValueName, LLVMGetValueName2, LLVMHalfTypeInContext, LLVMIntTypeInContext, LLVMModuleCreateWithNameInContext, LLVMPointerType, LLVMPositionBuilderAtEnd, LLVMPrintModuleToFile, LLVMSetInitializer, LLVMStructType, LLVMStructTypeInContext, LLVMTypeOf, LLVMVoidTypeInContext}, prelude::{LLVMBasicBlockRef, LLVMBuilderRef, LLVMContextRef, LLVMModuleRef, LLVMTypeRef, LLVMValueRef}, LLVMContext, LLVMTypeKind, LLVMValue};
+use llvm_sys_180::{core::{LLVMAddFunction, LLVMAddGlobal, LLVMAppendBasicBlock, LLVMAppendBasicBlockInContext, LLVMBuildAlloca, LLVMBuildAnd, LLVMBuildBr, LLVMBuildCall2, LLVMBuildCondBr, LLVMBuildFAdd, LLVMBuildFCmp, LLVMBuildFDiv, LLVMBuildFMul, LLVMBuildFSub, LLVMBuildGEP2, LLVMBuildGlobalString, LLVMBuildICmp, LLVMBuildInsertValue, LLVMBuildLoad2, LLVMBuildNot, LLVMBuildOr, LLVMBuildPointerCast, LLVMBuildRet, LLVMBuildRetVoid, LLVMBuildSDiv, LLVMBuildStore, LLVMBuildStructGEP2, LLVMConstInt, LLVMConstReal, LLVMContextCreate, LLVMCreateBuilderInContext, LLVMDoubleTypeInContext, LLVMFloatTypeInContext, LLVMFunctionType, LLVMGetAggregateElement, LLVMGetBasicBlockParent, LLVMGetInsertBlock, LLVMGetParam, LLVMGetReturnType, LLVMGetStructElementTypes, LLVMGetStructName, LLVMGetTypeKind, LLVMGetValueName, LLVMGetValueName2, LLVMHalfTypeInContext, LLVMIntTypeInContext, LLVMModuleCreateWithNameInContext, LLVMPointerType, LLVMPositionBuilderAtEnd, LLVMPrintModuleToFile, LLVMSetInitializer, LLVMStructType, LLVMStructTypeInContext, LLVMTypeOf, LLVMVoidTypeInContext}, prelude::{LLVMBasicBlockRef, LLVMBuilderRef, LLVMContextRef, LLVMModuleRef, LLVMTypeRef, LLVMValueRef}, LLVMContext, LLVMTypeKind, LLVMValue};
 use logos::Logos;
 use namegen::{gen_id, gen_id_pre, gen_id_prepost};
 use scope::IGScope;
@@ -286,6 +286,8 @@ impl Compiler {
             self.visit_binexpr(expr)
         } else if let Expr::Bool(_) = expr {
             self.resolve_value(expr)
+        } else if let Expr::Prefix { .. } = expr {
+            self.visit_prefix(expr)
         } else {
             panic!("Expected conditional statement, got {:?}", expr);
         }
@@ -309,6 +311,21 @@ impl Compiler {
         }
 
         panic!("Failed to include source file {:?}", inc);
+    }
+
+    unsafe fn visit_prefix(&mut self, expr: Expr) -> IGValue {
+        let Expr::Prefix { op, right } = expr else {
+            panic!("Expected prefix expression");
+        };
+
+        let rhs = self.resolve_value(*right);
+
+        let val = match op {
+            Token::Not => LLVMBuildNot(self.builder, rhs.value, gen_id()),
+            _ => panic!("Unsupported prefix expression: {:?}", op)
+        };
+
+        IGValue::new(val, self.get_type_by_name("bool"))
     }
 
     unsafe fn visit_include(&mut self, stmt: Stmt) {
