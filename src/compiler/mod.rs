@@ -6,7 +6,7 @@ pub mod namegen;
 
 use std::{alloc::{self, Layout}, collections::HashMap, ffi::CString, path::Path, process::{self, Command}};
 
-use llvm_sys_180::{core::{LLVMAddFunction, LLVMAppendBasicBlock, LLVMAppendBasicBlockInContext, LLVMBuildAlloca, LLVMBuildAnd, LLVMBuildCall2, LLVMBuildFAdd, LLVMBuildFCmp, LLVMBuildFDiv, LLVMBuildFMul, LLVMBuildFSub, LLVMBuildGlobalString, LLVMBuildICmp, LLVMBuildLoad2, LLVMBuildOr, LLVMBuildPointerCast, LLVMBuildRet, LLVMBuildRetVoid, LLVMBuildSDiv, LLVMBuildStore, LLVMConstInt, LLVMConstReal, LLVMContextCreate, LLVMCreateBuilderInContext, LLVMDoubleTypeInContext, LLVMFloatTypeInContext, LLVMFunctionType, LLVMGetParam, LLVMGetReturnType, LLVMGetTypeKind, LLVMHalfTypeInContext, LLVMIntTypeInContext, LLVMModuleCreateWithNameInContext, LLVMPointerType, LLVMPositionBuilderAtEnd, LLVMPrintModuleToFile, LLVMTypeOf, LLVMVoidTypeInContext}, prelude::{LLVMBuilderRef, LLVMContextRef, LLVMModuleRef, LLVMTypeRef, LLVMValueRef}, LLVMContext, LLVMTypeKind, LLVMValue};
+use llvm_sys_180::{core::{LLVMAddFunction, LLVMAppendBasicBlock, LLVMAppendBasicBlockInContext, LLVMBuildAlloca, LLVMBuildAnd, LLVMBuildCall2, LLVMBuildFAdd, LLVMBuildFCmp, LLVMBuildFDiv, LLVMBuildFMul, LLVMBuildFSub, LLVMBuildGlobalString, LLVMBuildICmp, LLVMBuildLoad2, LLVMBuildOr, LLVMBuildPointerCast, LLVMBuildRet, LLVMBuildRetVoid, LLVMBuildSDiv, LLVMBuildStore, LLVMConstInt, LLVMConstReal, LLVMContextCreate, LLVMCreateBuilderInContext, LLVMDoubleTypeInContext, LLVMFloatTypeInContext, LLVMFunctionType, LLVMGetParam, LLVMGetReturnType, LLVMGetTypeKind, LLVMGetValueName, LLVMGetValueName2, LLVMHalfTypeInContext, LLVMIntTypeInContext, LLVMModuleCreateWithNameInContext, LLVMPointerType, LLVMPositionBuilderAtEnd, LLVMPrintModuleToFile, LLVMTypeOf, LLVMVoidTypeInContext}, prelude::{LLVMBuilderRef, LLVMContextRef, LLVMModuleRef, LLVMTypeRef, LLVMValueRef}, LLVMContext, LLVMTypeKind, LLVMValue};
 use logos::Logos;
 use namegen::{gen_id, gen_id_pre, gen_id_prepost};
 use scope::IGScope;
@@ -102,6 +102,8 @@ impl Compiler {
     }  
 
     fn execute_command(cmd: &str, args: Vec<&str>) {
+        println!("executing: {} {:?}", cmd, args);
+
         let out = Command::new(cmd)
             .args(args)
             .output()
@@ -134,10 +136,25 @@ impl Compiler {
                 }
                 
                 let mut comp_arg = vec!["-o", output.to_str().unwrap(), "-no-pie"];
+
                 for obj in &obj_files {
                     comp_arg.push(obj);
                 }
-            
+
+                let mut libs = vec![];
+
+                for lib in compiler.libs.iter() {
+                    libs.push(if lib._static {
+                        lib.lib.clone()
+                    } else {
+                        ["-l", &lib.lib].join("")
+                    });
+                }
+                
+                for lib in libs.iter() {
+                    comp_arg.push(lib);
+                }
+
                 Self::execute_command("gcc", comp_arg);
 
                 for obj in &obj_files {
@@ -145,7 +162,7 @@ impl Compiler {
                 }
 
                 for out in compiler.outputs.clone() {
-                    std::fs::remove_file(out).expect("Failed to remove llvm ir files");
+                    // std::fs::remove_file(out).expect("Failed to remove llvm ir files");
                 }
             }
 
@@ -177,6 +194,8 @@ impl Compiler {
             self.visit_extern(stmt.clone());   
         } else if let Stmt::Include { .. } = stmt {
             self.visit_include(stmt.clone());
+        } else if let Stmt::Link { library, _static } = stmt {
+            self.libs.push(IGLib { lib: library, _static: _static })
         } else {
             panic!("Unsupported statement: {:?}", stmt);
         }
@@ -259,10 +278,11 @@ impl Compiler {
         let mut compiler = Self::compile(Path::new(&partial), ast, self.include_paths.clone(), Some(inc_path.parent().unwrap().to_string_lossy().to_string()), true);
         for (name, value) in compiler.current_scope.symbols {
             if LLVMGetTypeKind(LLVMTypeOf(value.clone().value)) == LLVMTypeKind::LLVMPointerTypeKind && value.public {
-                let func = LLVMAddFunction(self.module, get_cstring(name.clone()), value._type);
+                let func = LLVMAddFunction(self.module,  LLVMGetValueName(value.value), value._type);
                 self.current_scope.define(name, func, value._type, false, false);
             }
         }
+        self.libs.append(&mut compiler.libs);
         self.outputs.append(&mut compiler.outputs);
     }
 
