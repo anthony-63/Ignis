@@ -64,7 +64,13 @@ impl Compiler {
 
     unsafe fn get_type(&self, _type: Type) -> LLVMTypeRef {
         if let Type::Symbol(t) = _type {
-            *self.type_map.get(&t).unwrap_or_else(|| panic!("Invalid type {:?}", t))
+            if let Some(t) = self.type_map.get(&t) {
+                t.clone()
+            } else if let Some(t) = self.current_scope.resolve(t.clone()) {
+                t._type
+            } else {
+                panic!("Invalid type {:?}", t);
+            }
         } else if let Type::Ref(t) = _type {
             self.get_type(*t)
         } else {
@@ -359,9 +365,12 @@ impl Compiler {
         let partial = outpath.join(inc_path.to_string_lossy().to_string().replace("\\", "_").replace("/", "_"));
         let mut compiler = Self::compile(Path::new(&partial), ast, self.include_paths.clone(), Some(inc_path.parent().unwrap().to_string_lossy().to_string()), true);
         for (name, value) in compiler.current_scope.symbols {
-            if LLVMGetTypeKind(LLVMTypeOf(value.clone().value)) == LLVMTypeKind::LLVMPointerTypeKind && value.public {
+            let tk = LLVMGetTypeKind(LLVMTypeOf(value.clone().value));
+            if tk == LLVMTypeKind::LLVMPointerTypeKind && value.public {
                 let func = LLVMAddFunction(self.module,  LLVMGetValueName(value.value), value._type);
                 self.current_scope.define(name, func, value._type, false, false);
+            } else {
+                self.current_scope.define(name, value.value, value._type, false, false);
             }
         }
         self.libs.append(&mut compiler.libs);
