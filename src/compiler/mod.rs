@@ -162,7 +162,7 @@ impl Compiler {
                 }
 
                 for out in compiler.outputs.clone() {
-                    // std::fs::remove_file(out).expect("Failed to remove llvm ir files");
+                    std::fs::remove_file(out).expect("Failed to remove llvm ir files");
                 }
             }
 
