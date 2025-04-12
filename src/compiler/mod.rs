@@ -6,7 +6,7 @@ pub mod namegen;
 
 use std::{alloc::{self, Layout}, any::Any, collections::HashMap, ffi::{CStr, CString}, path::Path, process::{self, Command}};
 
-use llvm_sys_180::{core::{LLVMAddFunction, LLVMAddGlobal, LLVMAppendBasicBlock, LLVMAppendBasicBlockInContext, LLVMBuildAlloca, LLVMBuildAnd, LLVMBuildBr, LLVMBuildCall2, LLVMBuildCondBr, LLVMBuildFAdd, LLVMBuildFCmp, LLVMBuildFDiv, LLVMBuildFMul, LLVMBuildFSub, LLVMBuildGEP2, LLVMBuildGlobalString, LLVMBuildICmp, LLVMBuildInsertValue, LLVMBuildLoad2, LLVMBuildNot, LLVMBuildOr, LLVMBuildPointerCast, LLVMBuildRet, LLVMBuildRetVoid, LLVMBuildSDiv, LLVMBuildStore, LLVMBuildStructGEP2, LLVMConstInt, LLVMConstReal, LLVMContextCreate, LLVMCreateBuilderInContext, LLVMDoubleTypeInContext, LLVMFloatTypeInContext, LLVMFunctionType, LLVMGetAggregateElement, LLVMGetBasicBlockParent, LLVMGetInsertBlock, LLVMGetParam, LLVMGetReturnType, LLVMGetStructElementTypes, LLVMGetStructName, LLVMGetTypeKind, LLVMGetValueName, LLVMGetValueName2, LLVMHalfTypeInContext, LLVMIntTypeInContext, LLVMModuleCreateWithNameInContext, LLVMPointerType, LLVMPositionBuilderAtEnd, LLVMPrintModuleToFile, LLVMSetInitializer, LLVMStructType, LLVMStructTypeInContext, LLVMTypeOf, LLVMVoidTypeInContext}, prelude::{LLVMBasicBlockRef, LLVMBuilderRef, LLVMContextRef, LLVMModuleRef, LLVMTypeRef, LLVMValueRef}, LLVMContext, LLVMTypeKind, LLVMValue};
+use llvm_sys_180::{core::{LLVMAddFunction, LLVMAddGlobal, LLVMAppendBasicBlock, LLVMAppendBasicBlockInContext, LLVMBuildAdd, LLVMBuildAlloca, LLVMBuildAnd, LLVMBuildBr, LLVMBuildCall2, LLVMBuildCondBr, LLVMBuildFAdd, LLVMBuildFCmp, LLVMBuildFDiv, LLVMBuildFMul, LLVMBuildFSub, LLVMBuildGEP2, LLVMBuildGlobalString, LLVMBuildICmp, LLVMBuildInsertValue, LLVMBuildLoad2, LLVMBuildMul, LLVMBuildNot, LLVMBuildOr, LLVMBuildPointerCast, LLVMBuildRet, LLVMBuildRetVoid, LLVMBuildSDiv, LLVMBuildStore, LLVMBuildStructGEP2, LLVMBuildSub, LLVMConstInt, LLVMConstReal, LLVMContextCreate, LLVMCreateBuilderInContext, LLVMDoubleTypeInContext, LLVMFloatTypeInContext, LLVMFunctionType, LLVMGetAggregateElement, LLVMGetBasicBlockParent, LLVMGetInsertBlock, LLVMGetParam, LLVMGetReturnType, LLVMGetStructElementTypes, LLVMGetStructName, LLVMGetTypeKind, LLVMGetValueName, LLVMGetValueName2, LLVMHalfTypeInContext, LLVMIntTypeInContext, LLVMModuleCreateWithNameInContext, LLVMPointerType, LLVMPositionBuilderAtEnd, LLVMPrintModuleToFile, LLVMSetInitializer, LLVMStructType, LLVMStructTypeInContext, LLVMTypeOf, LLVMVoidTypeInContext}, prelude::{LLVMBasicBlockRef, LLVMBuilderRef, LLVMContextRef, LLVMModuleRef, LLVMTypeRef, LLVMValueRef}, LLVMContext, LLVMTypeKind, LLVMValue};
 use logos::Logos;
 use namegen::{gen_id, gen_id_pre, gen_id_prepost};
 use scope::IGScope;
@@ -382,19 +382,26 @@ impl Compiler {
     }
 
     unsafe fn visit_assignment_expr(&mut self, expr: Expr) {
-        let Expr::Assignment { assignee, right } = expr else {
+        let Expr::Assignment { assignee, right } = &expr else {
             panic!("Expected assignment expression");
         };
 
-        let left = self.resolve_value(*assignee.clone());
-        
-        println!("{:?}", left);
-        let val = self.resolve_value(*right);
+        let ptr = if let Expr::Symbol(name) = *assignee.clone() {
+            self.current_scope.resolve(name.clone()).unwrap()
+        } else if let Expr::Access { .. } = *assignee.clone() {
+            &self.resolve_value(*assignee.clone())
+        } else {
+            panic!("Invalid expression on LHS of assignment, got {:?}", expr);
+        };
 
-        if !left.mutable {
+        let new_ptr = ptr.clone();
+
+        let val = self.resolve_value(*right.clone());
+        
+        if !new_ptr.mutable {
             panic!("Attempted to assign to an immutable variable {:?}", assignee);
         }
-        LLVMBuildStore(self.builder, val.value, left.value);
+        LLVMBuildStore(self.builder, val.value, new_ptr.value);
     }
 
     unsafe fn visit_call_expr(&mut self, expr: Expr) -> Option<IGValue> {
@@ -522,9 +529,9 @@ impl Compiler {
         let rhs = right.value;
 
         match op {
-            Token::Plus => if floating { LLVMBuildFAdd(self.builder, lhs, rhs, name) } else { LLVMBuildFAdd(self.builder, lhs, rhs, name) }
-            Token::Minus => if floating { LLVMBuildFSub(self.builder, lhs, rhs, name) } else { LLVMBuildFSub(self.builder, lhs, rhs, name) }
-            Token::Multiply => if floating { LLVMBuildFMul(self.builder, lhs, rhs, name) } else { LLVMBuildFMul(self.builder, lhs, rhs, name) }
+            Token::Plus => if floating { LLVMBuildFAdd(self.builder, lhs, rhs, name) } else { LLVMBuildAdd(self.builder, lhs, rhs, name) }
+            Token::Minus => if floating { LLVMBuildFSub(self.builder, lhs, rhs, name) } else { LLVMBuildSub(self.builder, lhs, rhs, name) }
+            Token::Multiply => if floating { LLVMBuildFMul(self.builder, lhs, rhs, name) } else { LLVMBuildMul(self.builder, lhs, rhs, name) }
             Token::Divide => if floating { LLVMBuildFDiv(self.builder, lhs, rhs, name) } else { LLVMBuildSDiv(self.builder, lhs, rhs, name) }
             Token::Greater => if floating { LLVMBuildFCmp(self.builder, FPredicate::LLVMRealUGT, lhs, rhs, name) } else { LLVMBuildICmp(self.builder, IPredicate::LLVMIntUGT, lhs, rhs, name) }
             Token::GreaterOrEqual => if floating { LLVMBuildFCmp(self.builder, FPredicate::LLVMRealUGE, lhs, rhs, name) } else { LLVMBuildICmp(self.builder, IPredicate::LLVMIntUGE, lhs, rhs, name) }
@@ -573,6 +580,20 @@ impl Compiler {
         } else {
             panic!("Unsupported operation '{:?}' between {:?} and {:?}", op, left, right);
         }
+    }
+
+    unsafe fn resolve_mutable_symbol(&mut self, expr: Expr) -> IGValue {
+        let Expr::Symbol(symbol) = expr else {
+            panic!("Expectd symbol but got {:?}", expr);
+        };
+
+        let Some(val) = self.current_scope.resolve(symbol.clone()) else {
+            panic!("Failed to resolve symbol: {:?}", symbol);
+        };
+        IGValue::new(
+            LLVMBuildLoad2(self.builder, LLVMPointerType(val._type, 0), val.value, gen_id()),
+            val._type
+        )
     }
 
     unsafe fn resolve_value(&mut self, value: Expr) -> IGValue {

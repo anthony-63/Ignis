@@ -10,7 +10,8 @@ main -> sub() {
     while !(window_should_close()) {
         begin_drawing();
         clear_background(red);
-        i = i + 1;
+        i += 1;
+        red.r = i + 1;
         end_drawing();
     }
 }

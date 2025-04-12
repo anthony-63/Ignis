@@ -1,5 +1,6 @@
+include "std/io.ig"
+
 main -> sub() i32 {
-    let a = 1;
-    a = 2;
+    let a = "hello";
     return 0;
 }
