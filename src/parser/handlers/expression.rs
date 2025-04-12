@@ -1,4 +1,4 @@
-use crate::{lexer::Token, parser::{ast::Expr, pratt::BindingPower, Parser}};
+use crate::{lexer::Token, parser::{ast::{Expr, Stmt}, pratt::BindingPower, Parser}};
 
 use super::statement::*;
 
@@ -152,5 +152,32 @@ pub fn parse_access_expression(parser: &mut Parser, left: Expr, bp: BindingPower
 }
 
 pub fn parse_struct_create_expression(parser: &mut Parser) -> Expr {
-    Expr::Int(0)
+    parser.advance();
+
+    let Token::Identifier(name) = parser.advance() else {
+        panic!("Expected identifier for stuct initialization");
+    };
+
+    let newname = name.clone();
+
+    let mut fields = vec![];
+    parser.expect(Token::OpenCurly);
+    while parser.has_tokens() && !parser.is_current_kind(Token::CloseCurly) {
+        let Token::Identifier(name) = parser.advance() else {
+            panic!("Expected identifier in struct initialization, but got {:?}", parser.current());
+        };
+
+        let nname = name.clone();
+
+        parser.expect(Token::Colon);
+        fields.push(Stmt::StructInitField { name: nname, value: Box::new(parse_expression(parser, BindingPower::Default)) });
+
+        if !parser.is_current_kind(Token::CloseCurly) {
+            parser.expect(Token::Comma);
+        }
+    }
+
+    parser.expect(Token::CloseCurly);
+
+    Expr::StructInitialize { name: newname, fields: fields }
 }

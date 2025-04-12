@@ -1,12 +1,13 @@
 use llvm_sys_180::{core::LLVMGetTypeKind, prelude::{LLVMTypeRef, LLVMValueRef}};
 
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct IGValue {
     pub value: LLVMValueRef,
     pub _type: LLVMTypeRef,
     pub mutable: bool,
     pub public: bool,
+    pub parent: Option<String>,
 }
 
 impl IGValue {
@@ -16,6 +17,17 @@ impl IGValue {
             _type,
             mutable: true,
             public: true,
+            parent: None,
+        }
+    }
+
+    pub fn new_struct(value: LLVMValueRef, _type: LLVMTypeRef, parent: String) -> Self {
+        Self {
+            value,
+            _type,
+            mutable: true,
+            public: true,
+            parent: Some(parent),
         }
     }
 

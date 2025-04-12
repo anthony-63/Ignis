@@ -4,9 +4,9 @@ pub mod scope;
 pub mod value;
 pub mod namegen;
 
-use std::{alloc::{self, Layout}, collections::HashMap, ffi::CString, path::Path, process::{self, Command}};
+use std::{alloc::{self, Layout}, any::Any, collections::HashMap, ffi::{CStr, CString}, path::Path, process::{self, Command}};
 
-use llvm_sys_180::{core::{LLVMAddFunction, LLVMAppendBasicBlock, LLVMAppendBasicBlockInContext, LLVMBuildAlloca, LLVMBuildAnd, LLVMBuildBr, LLVMBuildCall2, LLVMBuildCondBr, LLVMBuildFAdd, LLVMBuildFCmp, LLVMBuildFDiv, LLVMBuildFMul, LLVMBuildFSub, LLVMBuildGlobalString, LLVMBuildICmp, LLVMBuildLoad2, LLVMBuildOr, LLVMBuildPointerCast, LLVMBuildRet, LLVMBuildRetVoid, LLVMBuildSDiv, LLVMBuildStore, LLVMConstInt, LLVMConstReal, LLVMContextCreate, LLVMCreateBuilderInContext, LLVMDoubleTypeInContext, LLVMFloatTypeInContext, LLVMFunctionType, LLVMGetBasicBlockParent, LLVMGetInsertBlock, LLVMGetParam, LLVMGetReturnType, LLVMGetTypeKind, LLVMGetValueName, LLVMGetValueName2, LLVMHalfTypeInContext, LLVMIntTypeInContext, LLVMModuleCreateWithNameInContext, LLVMPointerType, LLVMPositionBuilderAtEnd, LLVMPrintModuleToFile, LLVMTypeOf, LLVMVoidTypeInContext}, prelude::{LLVMBasicBlockRef, LLVMBuilderRef, LLVMContextRef, LLVMModuleRef, LLVMTypeRef, LLVMValueRef}, LLVMContext, LLVMTypeKind, LLVMValue};
+use llvm_sys_180::{core::{LLVMAddFunction, LLVMAddGlobal, LLVMAppendBasicBlock, LLVMAppendBasicBlockInContext, LLVMBuildAlloca, LLVMBuildAnd, LLVMBuildBr, LLVMBuildCall2, LLVMBuildCondBr, LLVMBuildFAdd, LLVMBuildFCmp, LLVMBuildFDiv, LLVMBuildFMul, LLVMBuildFSub, LLVMBuildGEP2, LLVMBuildGlobalString, LLVMBuildICmp, LLVMBuildInsertValue, LLVMBuildLoad2, LLVMBuildOr, LLVMBuildPointerCast, LLVMBuildRet, LLVMBuildRetVoid, LLVMBuildSDiv, LLVMBuildStore, LLVMBuildStructGEP2, LLVMConstInt, LLVMConstReal, LLVMContextCreate, LLVMCreateBuilderInContext, LLVMDoubleTypeInContext, LLVMFloatTypeInContext, LLVMFunctionType, LLVMGetAggregateElement, LLVMGetBasicBlockParent, LLVMGetInsertBlock, LLVMGetParam, LLVMGetReturnType, LLVMGetStructElementTypes, LLVMGetStructName, LLVMGetTypeKind, LLVMGetValueName, LLVMGetValueName2, LLVMHalfTypeInContext, LLVMIntTypeInContext, LLVMModuleCreateWithNameInContext, LLVMPointerType, LLVMPositionBuilderAtEnd, LLVMPrintModuleToFile, LLVMSetInitializer, LLVMStructType, LLVMStructTypeInContext, LLVMTypeOf, LLVMVoidTypeInContext}, prelude::{LLVMBasicBlockRef, LLVMBuilderRef, LLVMContextRef, LLVMModuleRef, LLVMTypeRef, LLVMValueRef}, LLVMContext, LLVMTypeKind, LLVMValue};
 use logos::Logos;
 use namegen::{gen_id, gen_id_pre, gen_id_prepost};
 use scope::IGScope;
@@ -92,7 +92,7 @@ impl Compiler {
             include_paths,
             outputs: vec![Path::new(&output.clone()).with_extension("ll").to_string_lossy().to_string()],
 
-            current_scope: IGScope::new(None, None, None),
+            current_scope: IGScope::new(None, None, None, None),
 
             module: LLVMModuleCreateWithNameInContext(get_cstring("ignis".into()), context),
             builder: LLVMCreateBuilderInContext(context),
@@ -163,7 +163,7 @@ impl Compiler {
                 }
 
                 for out in compiler.outputs.clone() {
-                    std::fs::remove_file(out).expect("Failed to remove llvm ir files");
+                    // std::fs::remove_file(out).expect("Failed to remove llvm ir files");
                 }
             }
 
@@ -199,6 +199,8 @@ impl Compiler {
             self.libs.push(IGLib { lib: library, _static: _static })
         } else if let Stmt::While { .. } = stmt {
             self.visit_while(stmt.clone());  
+        } else if let Stmt::StructDeclaration { .. } = stmt {
+            self.visit_struct_declaration(stmt.clone());  
         } else {
             panic!("Unsupported statement: {:?}", stmt);
         }
@@ -213,6 +215,29 @@ impl Compiler {
             self.visit_call_expr(expr);
         } else {
             panic!("Unsupported expression: {:?}", expr);
+        }
+    }
+
+    unsafe fn visit_struct_declaration(&mut self, stmt: Stmt) {
+        let Stmt::StructDeclaration { name, fields, functions } = stmt else {
+            panic!("Expected struct declaration");
+        };
+
+        let field_types = self.get_arg_types(fields.clone());
+        let _type = LLVMStructTypeInContext(self.context,field_types.clone().as_mut_ptr(), field_types.len() as u32, 0);
+
+        self.current_scope.define_type(name.clone(), _type, false, true);
+
+        for (i, field_stmt) in fields.iter().enumerate() {
+            let Stmt::Field { name: _name, _type } = field_stmt else {
+                panic!("Expected field");
+            };
+            let mut newname= name.clone();
+            newname.push_str(".");
+            newname.push_str(&_name);
+
+
+            self.current_scope.define_field(newname, i);
         }
     }
 
@@ -372,7 +397,11 @@ impl Compiler {
             let alloca = LLVMBuildAlloca(self.builder, val._type, gen_id_pre(name.clone()));
             LLVMBuildStore(self.builder, val.value, alloca);
             if define {
-                self.current_scope.define(name, val.value, val._type, mutable, true);
+                if val.parent.is_some() {
+                    self.current_scope.define_struct(name, val.value, val._type, mutable, true, val.parent.unwrap());
+                } else {
+                    self.current_scope.define(name, val.value, val._type, mutable, true);
+                }
             }
         } else {
             panic!("Cannot redefine variable {:?}", name);
@@ -418,7 +447,7 @@ impl Compiler {
 
         let outer_scope = self.current_scope.clone();
 
-        self.current_scope = IGScope::new(None, Some(name.clone()), Some(Box::new(outer_scope.clone())));
+        self.current_scope = IGScope::new(None, None, Some(name.clone()), Some(Box::new(outer_scope.clone())));
         LLVMPositionBuilderAtEnd(self.builder, block);
         
         for (i, s) in arguments.iter().enumerate() {
@@ -512,8 +541,6 @@ impl Compiler {
         } else {
             panic!("Unsupported operation '{:?}' between {:?} and {:?}", op, left, right);
         }
-
-
     }
 
     unsafe fn resolve_value(&mut self, value: Expr) -> IGValue {
@@ -541,8 +568,53 @@ impl Compiler {
             let _type = LLVMPointerType(self.get_type_by_name("i8"), 0);
             let val = LLVMBuildPointerCast(self.builder, LLVMBuildGlobalString(self.builder, get_cstring(s), gen_id()), _type, gen_id());
             IGValue::new(val, _type)
-        } else if let Expr::Call { name, args } = value.clone() {
-            panic!("call expressions not supported yet");
+        } else if let Expr::Call { .. } = value.clone() {
+            self.visit_call_expr(value).expect("Expected value from call expression")
+        } else if let Expr::StructInitialize { name, fields } = value.clone() {
+            let _type = self.current_scope.resolve(name.clone()).expect(&format!("Failed to find type '{}' in context", name)).clone();
+            let alloca = LLVMBuildAlloca(self.builder, _type._type, gen_id());
+
+            for (i, field) in fields.iter().enumerate() {
+                let Stmt::StructInitField { name, value } = field else {
+                    panic!("Expected struct init field");
+                };
+
+                let val = self.resolve_value(*value.clone());
+
+                let ptr = LLVMBuildStructGEP2(self.builder, _type._type, alloca, i as u32, gen_id());
+                LLVMBuildStore(self.builder, val.value, ptr);
+            }
+
+            IGValue::new_struct(alloca, _type._type, name)
+        } else if let Expr::Access { lhs, rhs } = value.clone() {
+            let Expr::Symbol(sname) = *lhs else {
+                panic!("Only single depth access expressions allowed right now");
+            };
+            let Expr::Symbol(fname) = *rhs else {
+                panic!("Expected symbol on RHS of member access expression");
+            };
+
+            
+            let val = self.current_scope.resolve(sname.clone());
+            let Some(value) = val else {
+                panic!("Failed to resolve {:?}", sname);
+            };
+
+            println!("PARENT {} {:?}", sname, value);
+            let Some(parent) = value.parent.clone() else {
+                panic!("Failed to get member type")
+            };
+
+            let mut fullname = parent.clone();
+            fullname.push('.');
+            fullname.push_str(&fname);
+
+            let Some(index) = self.current_scope.resolve_field(fullname.clone()) else {
+                panic!("Failed to resolve member {}", fullname);
+            };
+
+            let ptr = LLVMBuildStructGEP2(self.builder, value._type, value.value, *index as u32, gen_id());
+            IGValue::new(ptr, value._type)
         } else {
             panic!("Unsupported value: {:?}", value);
         }
