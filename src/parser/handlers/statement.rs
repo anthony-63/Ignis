@@ -53,6 +53,23 @@ pub fn parse_if(parser: &mut Parser) -> Stmt {
     Stmt::If { condition: Box::new(condition), body: Box::new(Stmt::Block(body)), _else }
 }
 
+
+pub fn parse_while(parser: &mut Parser) -> Stmt {
+    parser.advance();
+
+    let condition = parse_expression(parser, BindingPower::Default);
+    let mut body = vec![];
+
+    parser.expect(Token::OpenCurly);
+    while parser.has_tokens() && !parser.is_current_kind(Token::CloseCurly) {
+        body.push(parse_stmt(parser));
+    }
+
+    parser.expect(Token::CloseCurly);
+
+    Stmt::While { condition: Box::new(condition), body: Box::new(Stmt::Block(body)) }
+}
+
 pub fn parse_function_declaration(parser: &mut Parser, name: String) -> Stmt {
     parser.expect(Token::OpenParen);
 

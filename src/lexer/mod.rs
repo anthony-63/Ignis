@@ -18,6 +18,11 @@ pub enum Token {
     #[regex(r"[a-zA-Z_][a-zA-Z0-9_]*", |lex| lex.slice().to_owned())]
     Identifier(String),
 
+    #[token("true")]
+    True,
+    #[token("false")]
+    False,
+
     #[token("[")]
     OpenBracket,
     #[token("]")]
@@ -40,7 +45,6 @@ pub enum Token {
     Equals,
     #[token("!=")]
     NotEquals,
-
 
     #[token("<")]
     Less,

@@ -36,8 +36,17 @@ pub fn parse_primary_expression(parser: &mut Parser) -> Expr {
         _ => panic!("Failed to parse primary expression {:?}", parser.current())
     };
 
+    parser.advance();
+    v
+}
 
+pub fn parse_not_expression(parser: &mut Parser) -> Expr {
+    let v = parse_expression(parser, BindingPower::Default);
+    Expr::Prefix { op: Token::Not, right: Box::new(v) }
+}
 
+pub fn parse_bool_expression(parser: &mut Parser) -> Expr {
+    let v = Expr::Bool(parser.is_current_kind(Token::True));
     parser.advance();
     v
 }

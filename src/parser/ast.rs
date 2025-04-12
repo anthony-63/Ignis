@@ -11,6 +11,8 @@ pub enum Expr {
 
     Symbol(String),
 
+    Bool(bool),
+
     Binary {
         left: Box<Expr>,
         op: Token,
@@ -67,6 +69,11 @@ pub enum Stmt {
         condition: Box<Expr>,
         body: Box<Stmt>,
         _else: Option<Box<Stmt>>,
+    },
+
+    While {
+        condition: Box<Expr>,
+        body: Box<Stmt>,
     },
 
     Link {

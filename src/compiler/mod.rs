@@ -6,7 +6,7 @@ pub mod namegen;
 
 use std::{alloc::{self, Layout}, collections::HashMap, ffi::CString, path::Path, process::{self, Command}};
 
-use llvm_sys_180::{core::{LLVMAddFunction, LLVMAppendBasicBlock, LLVMAppendBasicBlockInContext, LLVMBuildAlloca, LLVMBuildAnd, LLVMBuildCall2, LLVMBuildFAdd, LLVMBuildFCmp, LLVMBuildFDiv, LLVMBuildFMul, LLVMBuildFSub, LLVMBuildGlobalString, LLVMBuildICmp, LLVMBuildLoad2, LLVMBuildOr, LLVMBuildPointerCast, LLVMBuildRet, LLVMBuildRetVoid, LLVMBuildSDiv, LLVMBuildStore, LLVMConstInt, LLVMConstReal, LLVMContextCreate, LLVMCreateBuilderInContext, LLVMDoubleTypeInContext, LLVMFloatTypeInContext, LLVMFunctionType, LLVMGetParam, LLVMGetReturnType, LLVMGetTypeKind, LLVMGetValueName, LLVMGetValueName2, LLVMHalfTypeInContext, LLVMIntTypeInContext, LLVMModuleCreateWithNameInContext, LLVMPointerType, LLVMPositionBuilderAtEnd, LLVMPrintModuleToFile, LLVMTypeOf, LLVMVoidTypeInContext}, prelude::{LLVMBuilderRef, LLVMContextRef, LLVMModuleRef, LLVMTypeRef, LLVMValueRef}, LLVMContext, LLVMTypeKind, LLVMValue};
+use llvm_sys_180::{core::{LLVMAddFunction, LLVMAppendBasicBlock, LLVMAppendBasicBlockInContext, LLVMBuildAlloca, LLVMBuildAnd, LLVMBuildBr, LLVMBuildCall2, LLVMBuildCondBr, LLVMBuildFAdd, LLVMBuildFCmp, LLVMBuildFDiv, LLVMBuildFMul, LLVMBuildFSub, LLVMBuildGlobalString, LLVMBuildICmp, LLVMBuildLoad2, LLVMBuildOr, LLVMBuildPointerCast, LLVMBuildRet, LLVMBuildRetVoid, LLVMBuildSDiv, LLVMBuildStore, LLVMConstInt, LLVMConstReal, LLVMContextCreate, LLVMCreateBuilderInContext, LLVMDoubleTypeInContext, LLVMFloatTypeInContext, LLVMFunctionType, LLVMGetBasicBlockParent, LLVMGetInsertBlock, LLVMGetParam, LLVMGetReturnType, LLVMGetTypeKind, LLVMGetValueName, LLVMGetValueName2, LLVMHalfTypeInContext, LLVMIntTypeInContext, LLVMModuleCreateWithNameInContext, LLVMPointerType, LLVMPositionBuilderAtEnd, LLVMPrintModuleToFile, LLVMTypeOf, LLVMVoidTypeInContext}, prelude::{LLVMBasicBlockRef, LLVMBuilderRef, LLVMContextRef, LLVMModuleRef, LLVMTypeRef, LLVMValueRef}, LLVMContext, LLVMTypeKind, LLVMValue};
 use logos::Logos;
 use namegen::{gen_id, gen_id_pre, gen_id_prepost};
 use scope::IGScope;
@@ -45,6 +45,7 @@ impl Compiler {
     unsafe fn get_type_map(context: *mut LLVMContext) -> TypeMap {
         let mut type_map = TypeMap::new();
 
+        type_map.insert("bool".into(), LLVMIntTypeInContext(context,1));
         type_map.insert("i8".into(), LLVMIntTypeInContext(context,8));
         type_map.insert("i16".into(), LLVMIntTypeInContext(context, 16));
         type_map.insert("i32".into(), LLVMIntTypeInContext(context, 32));
@@ -196,6 +197,8 @@ impl Compiler {
             self.visit_include(stmt.clone());
         } else if let Stmt::Link { library, _static } = stmt {
             self.libs.push(IGLib { lib: library, _static: _static })
+        } else if let Stmt::While { .. } = stmt {
+            self.visit_while(stmt.clone());  
         } else {
             panic!("Unsupported statement: {:?}", stmt);
         }
@@ -224,6 +227,43 @@ impl Compiler {
         let func = LLVMAddFunction(self.module, get_cstring(symbol), func_type);
 
         self.current_scope.define(name, func, func_type, false, true);
+    }
+
+    unsafe fn visit_while(&mut self, stmt: Stmt) {
+        let Stmt::While { condition, body } = stmt else {
+            panic!("Expected while statement");
+        };
+
+        let thenbb = self.create_basic_block("while_inside".into());
+        let outisdebb = self.create_basic_block("while_outside".into());
+    
+        LLVMBuildBr(self.builder, thenbb);
+
+        LLVMPositionBuilderAtEnd(self.builder, thenbb);
+        self.visit_block(*body);
+        let cond = self.visit_conditional(*condition);
+        LLVMBuildCondBr(self.builder, cond.value, thenbb, outisdebb);
+        LLVMPositionBuilderAtEnd(self.builder, outisdebb);
+    }
+
+    unsafe fn create_basic_block(&mut self, name: String) -> LLVMBasicBlockRef {
+        let realname = gen_id_pre(name);
+        LLVMAppendBasicBlockInContext(self.context, self.get_current_function(), realname)
+    }
+
+    unsafe fn get_current_function(&mut self) -> LLVMValueRef {
+        let bl = LLVMGetInsertBlock(self.builder);
+        LLVMGetBasicBlockParent(bl)
+    }
+
+    unsafe fn visit_conditional(&mut self, expr: Expr) -> IGValue {
+        if let Expr::Binary { .. } = expr {
+            self.visit_binexpr(expr)
+        } else if let Expr::Bool(_) = expr {
+            self.resolve_value(expr)
+        } else {
+            panic!("Expected conditional statement, got {:?}", expr);
+        }
     }
 
     fn get_include_path(&self, inc: String) -> String {
@@ -492,6 +532,9 @@ impl Compiler {
                 LLVMBuildLoad2(self.builder, val._type, val.value, gen_id()),
                 val._type
             )
+        } else if let Expr::Bool(b) = value {
+            let _type = self.get_type_by_name("bool");
+            IGValue::new(LLVMConstInt(_type, b as u64, 0), _type)
         } else if let Expr::Binary { .. } = value {
             self.visit_binexpr(value)
         } else if let Expr::String(s) = value.clone() {

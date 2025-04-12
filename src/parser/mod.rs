@@ -59,13 +59,17 @@ impl Parser {
         lu.nud(Token::Decimel(0.), parse_primary_expression);
         lu.nud(Token::String(String::new()), parse_primary_expression);
         lu.nud(Token::Identifier(String::new()), parse_primary_expression);
+        lu.nud(Token::True, parse_bool_expression);
+        lu.nud(Token::False, parse_bool_expression);
 
         // lu.nud(Token::OpenBracket, parse_struct_create_expression);
+        lu.nud(Token::Not, parse_not_expression);
         lu.nud(Token::OpenParen, parse_grouped_expression);
 
         lu.nud(Token::Minus, parse_prefix_expression);
 
         lu.stmt(Token::If, parse_if);
+        lu.stmt(Token::While, parse_while);
         lu.stmt(Token::Mut, parse_var_decl);
         lu.stmt(Token::Immut, parse_var_decl);
         lu.stmt(Token::Return, parse_return);

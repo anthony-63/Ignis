@@ -40,7 +40,7 @@ fn main() {
 
     tokens.push(Token::EOF);
     let ast = Parser::parse(tokens);
-
+    println!("{:?}", ast);
     Compiler::compile(Path::new(output), ast, vec![], None, false);
 }
 
